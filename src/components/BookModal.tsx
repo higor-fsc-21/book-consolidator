@@ -1,38 +1,40 @@
-import { useState } from "react"
+"use client";
+
+import { useState } from "react";
 import type {
   Book,
   ReadingStatus,
   Importance,
   ConsolidationState,
-} from "../data"
-import { COVER_GRADIENTS, statusLabels } from "../data"
+} from "@/domain/types";
+import { COVER_GRADIENTS, statusLabels } from "@/domain/constants";
 
-type BookFormData = Omit<Book, "id" | "revisions" | "chapters">
+type BookFormData = Omit<Book, "id" | "revisions" | "chapters">;
 
 const importanceLabels: Record<Importance, string> = {
   1: "Muito importante",
   2: "Importante",
   3: "Interessante",
-}
+};
 
 const statusOptions: ReadingStatus[] = [
   "want",
   "reading",
   "completed",
   "paused",
-]
+];
 
 export function BookModal({
   editBook,
   onSave,
   onClose,
 }: {
-  editBook?: Book
-  onSave: (data: Partial<BookFormData>) => void
-  onClose: () => void
+  editBook?: Book;
+  onSave: (data: Partial<BookFormData>) => void;
+  onClose: () => void;
 }) {
-  const isEdit = !!editBook
-  const [step, setStep] = useState(1)
+  const isEdit = !!editBook;
+  const [step, setStep] = useState(1);
 
   const [form, setForm] = useState<BookFormData>({
     title: editBook?.title ?? "",
@@ -50,26 +52,22 @@ export function BookModal({
     lastRevision: editBook?.lastRevision,
     nextRevision: editBook?.nextRevision,
     summary: editBook?.summary ?? "",
-  })
+  });
 
   const set = <K extends keyof BookFormData>(key: K, value: BookFormData[K]) =>
-    setForm((f) => ({ ...f, [key]: value }))
+    setForm((f) => ({ ...f, [key]: value }));
 
-  const totalSteps = isEdit ? 3 : 3
+  const totalSteps = 3;
 
   const canProceed = () => {
-    if (step === 1) return form.title.trim() && form.author.trim()
-    if (step === 2) return form.totalChapters > 0
-    return true
-  }
+    if (step === 1) return form.title.trim() && form.author.trim();
+    if (step === 2) return form.totalChapters > 0;
+    return true;
+  };
 
   const handleSave = () => {
-    if (isEdit) {
-      onSave(form)
-    } else {
-      onSave(form)
-    }
-  }
+    onSave(form);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -277,16 +275,18 @@ export function BookModal({
                     Estado de consolidação
                   </label>
                   <div className="flex gap-2">
-                    {([
-                      "consolidating",
-                      "consolidated",
-                      "archived",
-                    ] as ConsolidationState[]).map((state) => {
+                    {(
+                      [
+                        "consolidating",
+                        "consolidated",
+                        "archived",
+                      ] as ConsolidationState[]
+                    ).map((state) => {
                       const labels = {
                         consolidating: "Em consolidação",
                         consolidated: "Consolidado",
                         archived: "Arquivado",
-                      }
+                      };
                       return (
                         <button
                           key={state}
@@ -299,7 +299,7 @@ export function BookModal({
                         >
                           {labels[state]}
                         </button>
-                      )
+                      );
                     })}
                   </div>
                 </div>
@@ -406,15 +406,15 @@ export function BookModal({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function Field({
   label,
   children,
 }: {
-  label: string
-  children: React.ReactNode
+  label: string;
+  children: React.ReactNode;
 }) {
   return (
     <div>
@@ -423,5 +423,5 @@ function Field({
       </label>
       {children}
     </div>
-  )
+  );
 }

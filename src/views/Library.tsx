@@ -1,12 +1,17 @@
-import { useState, useMemo } from "react"
-import type { NavigateFn } from "../App"
+"use client";
+
+import { useState, useMemo } from "react";
+import Link from "next/link";
 import type {
   Book,
   ReadingStatus,
   Importance,
   ConsolidationState,
-} from "../data"
-import { statusLabels, consolidationLabels, avgScore } from "../data"
+} from "@/domain/types";
+import { statusLabels, consolidationLabels } from "@/domain/constants";
+import { avgScore } from "@/domain/derived";
+import { createBook } from "@/app/actions/books";
+import { BookModal } from "@/components/BookModal";
 
 function BookCover({ gradient }: { gradient: [string, string] }) {
   return (
@@ -17,7 +22,7 @@ function BookCover({ gradient }: { gradient: [string, string] }) {
         boxShadow: "2px 3px 10px rgba(0,0,0,0.2)",
       }}
     />
-  )
+  );
 }
 
 function StatusBadge({ status }: { status: ReadingStatus }) {
@@ -27,14 +32,14 @@ function StatusBadge({ status }: { status: ReadingStatus }) {
     want: "bg-[#74777d]/10 text-[#4a4a5a]",
     paused: "bg-[#f2d492]/30 text-[#7a5a00]",
     archived: "bg-[#74777d]/8 text-[#74777d]",
-  }
+  };
   return (
     <span
       className={`text-[10px] font-[500] px-2 py-0.5 rounded-full ${styles[status]}`}
     >
       {statusLabels[status]}
     </span>
-  )
+  );
 }
 
 function ConsolidationBadge({ state }: { state: ConsolidationState }) {
@@ -42,14 +47,14 @@ function ConsolidationBadge({ state }: { state: ConsolidationState }) {
     consolidating: "bg-[#f2d492]/30 text-[#7a5a00]",
     consolidated: "bg-[#8ba889]/20 text-[#2a5628]",
     archived: "bg-[#74777d]/8 text-[#74777d]",
-  }
+  };
   return (
     <span
       className={`text-[10px] font-[500] px-2 py-0.5 rounded-full ${styles[state]}`}
     >
       {consolidationLabels[state]}
     </span>
-  )
+  );
 }
 
 function ImportanceDots({ level }: { level: Importance }) {
@@ -64,22 +69,22 @@ function ImportanceDots({ level }: { level: Importance }) {
         />
       ))}
     </div>
-  )
+  );
 }
 
-function BookCard({ book, onClick }: { book: Book onClick: () => void }) {
-  const avg = avgScore(book)
-  const totalQ = book.chapters.reduce((a, c) => a + c.questions.length, 0)
-  const readChapters = book.chapters.filter((c) => c.isRead).length
+function BookCard({ book }: { book: Book }) {
+  const avg = avgScore(book);
+  const totalQ = book.chapters.reduce((a, c) => a + c.questions.length, 0);
+  const readChapters = book.chapters.filter((c) => c.isRead).length;
   const progress =
     book.totalChapters > 0 && readChapters > 0
       ? Math.round((readChapters / book.totalChapters) * 100)
-      : 0
+      : 0;
 
   return (
-    <button
-      onClick={onClick}
-      className="group w-full bg-white rounded-xl p-5 shadow-paper hover:shadow-paper-lg transition-shadow text-left"
+    <Link
+      href={`/livros/${book.id}`}
+      className="group w-full bg-white rounded-xl p-5 shadow-paper hover:shadow-paper-lg transition-shadow text-left block"
     >
       <div className="flex gap-4">
         <BookCover gradient={book.coverGradient} />
@@ -150,82 +155,76 @@ function BookCard({ book, onClick }: { book: Book onClick: () => void }) {
           )}
         </div>
       </div>
-    </button>
-  )
+    </Link>
+  );
 }
 
-type SortKey = "name" | "importance" | "consolidation" | "questions"
+type SortKey = "name" | "importance" | "consolidation" | "questions";
 const sortLabels: Record<SortKey, string> = {
   name: "Nome",
   importance: "Importância",
   consolidation: "Consolidação",
   questions: "Qtd. de perguntas",
-}
+};
 const consolidationOrder: Record<ConsolidationState, number> = {
   consolidating: 0,
   consolidated: 1,
   archived: 2,
-}
+};
 
-export function Library({
-  books,
-  onNavigate,
-  onOpenAddBook,
-  onOpenEditBook,
-}: {
-  books: Book[]
-  onNavigate: NavigateFn
-  onOpenAddBook: () => void
-  onOpenEditBook: (id: string) => void
-}) {
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<ReadingStatus | "all">("all")
+export function Library({ books }: { books: Book[] }) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ReadingStatus | "all">(
+    "all",
+  );
   const [importanceFilter, setImportanceFilter] = useState<Importance | "all">(
     "all",
-  )
-  const [consolidationFilter, setConsolidationFilter] =
-    useState<ConsolidationState | "all">("all")
-  const [sortKey, setSortKey] = useState<SortKey>("name")
-  const [sortAsc, setSortAsc] = useState(true)
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  );
+  const [consolidationFilter, setConsolidationFilter] = useState<
+    ConsolidationState | "all"
+  >("all");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortAsc, setSortAsc] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const filtered = useMemo(() => {
-    let result = [...books]
+    let result = [...books];
 
     if (search.trim()) {
-      const q = search.toLowerCase()
+      const q = search.toLowerCase();
       result = result.filter(
         (b) =>
           b.title.toLowerCase().includes(q) ||
           b.author.toLowerCase().includes(q),
-      )
+      );
     }
     if (statusFilter !== "all")
-      result = result.filter((b) => b.status === statusFilter)
+      result = result.filter((b) => b.status === statusFilter);
     if (importanceFilter !== "all")
-      result = result.filter((b) => b.importance === importanceFilter)
+      result = result.filter((b) => b.importance === importanceFilter);
     if (consolidationFilter !== "all")
       result = result.filter(
         (b) => b.consolidationState === consolidationFilter,
-      )
+      );
 
     result.sort((a, b) => {
-      let diff = 0
-      if (sortKey === "name") diff = a.title.localeCompare(b.title, "pt-BR")
-      else if (sortKey === "importance") diff = a.importance - b.importance
+      let diff = 0;
+      if (sortKey === "name") diff = a.title.localeCompare(b.title, "pt-BR");
+      else if (sortKey === "importance") diff = a.importance - b.importance;
       else if (sortKey === "consolidation")
         diff =
           consolidationOrder[a.consolidationState] -
-          consolidationOrder[b.consolidationState]
+          consolidationOrder[b.consolidationState];
       else if (sortKey === "questions") {
-        const qa = a.chapters.reduce((s, c) => s + c.questions.length, 0)
-        const qb = b.chapters.reduce((s, c) => s + c.questions.length, 0)
-        diff = qb - qa
+        const qa = a.chapters.reduce((s, c) => s + c.questions.length, 0);
+        const qb = b.chapters.reduce((s, c) => s + c.questions.length, 0);
+        diff = qb - qa;
       }
-      return sortAsc ? diff : -diff
-    })
+      return sortAsc ? diff : -diff;
+    });
 
-    return result
+    return result;
   }, [
     books,
     search,
@@ -234,18 +233,20 @@ export function Library({
     consolidationFilter,
     sortKey,
     sortAsc,
-  ])
+  ]);
 
-  const statusTabs: Array<{ id: ReadingStatus | "all" label: string }> = [
+  const statusTabs: Array<{ id: ReadingStatus | "all"; label: string }> = [
     { id: "all", label: "Todos" },
     { id: "reading", label: "Lendo" },
     { id: "completed", label: "Concluídos" },
     { id: "want", label: "Quero ler" },
     { id: "paused", label: "Pausados" },
-  ]
+  ];
 
   const hasActiveFilters =
-    importanceFilter !== "all" || consolidationFilter !== "all" || search.trim()
+    importanceFilter !== "all" ||
+    consolidationFilter !== "all" ||
+    search.trim();
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
@@ -264,7 +265,7 @@ export function Library({
           </p>
         </div>
         <button
-          onClick={onOpenAddBook}
+          onClick={() => setAddOpen(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
         >
           <svg
@@ -410,7 +411,7 @@ export function Library({
                   1: "Alta",
                   2: "Média",
                   3: "Baixa",
-                }
+                };
                 return (
                   <button
                     key={i}
@@ -425,7 +426,7 @@ export function Library({
                   >
                     {labels[i]}
                   </button>
-                )
+                );
               })}
             </div>
           </div>
@@ -435,18 +436,15 @@ export function Library({
               Consolidação
             </div>
             <div className="flex gap-2 flex-wrap">
-              {([
-                "all",
-                "consolidating",
-                "consolidated",
-                "archived",
-              ] as const).map((c) => {
+              {(
+                ["all", "consolidating", "consolidated", "archived"] as const
+              ).map((c) => {
                 const labels = {
                   all: "Todas",
                   consolidating: "Em consolidação",
                   consolidated: "Consolidado",
                   archived: "Arquivado",
-                }
+                };
                 return (
                   <button
                     key={c}
@@ -461,7 +459,7 @@ export function Library({
                   >
                     {labels[c]}
                   </button>
-                )
+                );
               })}
             </div>
           </div>
@@ -470,9 +468,9 @@ export function Library({
             <div className="col-span-2 flex justify-end">
               <button
                 onClick={() => {
-                  setSearch("")
-                  setImportanceFilter("all")
-                  setConsolidationFilter("all")
+                  setSearch("");
+                  setImportanceFilter("all");
+                  setConsolidationFilter("all");
                 }}
                 className="text-xs text-[#ba1a1a] hover:underline"
               >
@@ -489,8 +487,8 @@ export function Library({
           const count =
             tab.id === "all"
               ? books.length
-              : books.filter((b) => b.status === tab.id).length
-          if (tab.id !== "all" && count === 0) return null
+              : books.filter((b) => b.status === tab.id).length;
+          if (tab.id !== "all" && count === 0) return null;
           return (
             <button
               key={tab.id}
@@ -504,7 +502,7 @@ export function Library({
               {tab.label}
               <span className="ml-1.5 text-[10px] text-[#74777d]">{count}</span>
             </button>
-          )
+          );
         })}
       </div>
 
@@ -516,15 +514,11 @@ export function Library({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((book) => (
-            <BookCard
-              key={book.id}
-              book={book}
-              onClick={() => onNavigate({ view: "book", bookId: book.id })}
-            />
+            <BookCard key={book.id} book={book} />
           ))}
 
           <button
-            onClick={onOpenAddBook}
+            onClick={() => setAddOpen(true)}
             className="bg-white rounded-xl p-5 border border-dashed border-[#c4c6cd] flex items-center justify-center gap-3 text-[#74777d] hover:text-[#1a2e44] hover:border-[#1a2e44]/40 transition-all min-h-[120px] shadow-paper-sm"
           >
             <svg
@@ -543,6 +537,16 @@ export function Library({
           </button>
         </div>
       )}
+
+      {addOpen && (
+        <BookModal
+          onClose={() => setAddOpen(false)}
+          onSave={async (data) => {
+            await createBook(data as Parameters<typeof createBook>[0]);
+            setAddOpen(false);
+          }}
+        />
+      )}
     </div>
-  )
+  );
 }

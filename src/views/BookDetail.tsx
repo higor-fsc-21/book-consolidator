@@ -1,12 +1,19 @@
-import { useState } from "react"
-import type { NavigateFn } from "../App"
-import type { Book, RevisionRecord } from "../data"
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import type { Book, RevisionRecord } from "@/domain/types";
 import {
   statusLabels,
   consolidationLabels,
   modeLabels,
-  avgScore,
-} from "../data"
+} from "@/domain/constants";
+import { avgScore } from "@/domain/derived";
+import { updateBook, startReading } from "@/app/actions/books";
+import { createChapter, toggleChapterRead } from "@/app/actions/chapters";
+import { startSessionAction } from "@/app/actions/sessions";
+import { BookModal } from "@/components/BookModal";
 
 function BookCover({ gradient }: { gradient: [string, string] }) {
   return (
@@ -17,33 +24,33 @@ function BookCover({ gradient }: { gradient: [string, string] }) {
         boxShadow: "4px 6px 20px rgba(0,0,0,0.25)",
       }}
     />
-  )
+  );
 }
 
 function RevisionRow({
   revision,
   index,
 }: {
-  revision: RevisionRecord
-  index: number
+  revision: RevisionRecord;
+  index: number;
 }) {
   const scoreColor =
     revision.score >= 80
       ? "text-[#2a5628]"
       : revision.score >= 60
         ? "text-[#7a5a00]"
-        : "text-[#ba1a1a]"
+        : "text-[#ba1a1a]";
   const barColor =
     revision.score >= 80
       ? "bg-[#8ba889]"
       : revision.score >= 60
         ? "bg-[#f2d492]"
-        : "bg-[#ba1a1a]/60"
+        : "bg-[#ba1a1a]/60";
   const date = new Date(revision.date).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
     year: "2-digit",
-  })
+  });
 
   return (
     <div className="flex items-center gap-4 py-3 border-b border-[#f0eeee] last:border-0">
@@ -83,26 +90,26 @@ function RevisionRow({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 interface NewChapterForm {
-  title: string
-  description: string
+  title: string;
+  description: string;
 }
 
 function AddChapterForm({
   onSave,
   onCancel,
 }: {
-  onSave: (data: { title: string description?: string }) => void
-  onCancel: () => void
+  onSave: (data: { title: string; description?: string }) => void;
+  onCancel: () => void;
 }) {
   const [form, setForm] = useState<NewChapterForm>({
     title: "",
     description: "",
-  })
-  const canSave = form.title.trim().length > 0
+  });
+  const canSave = form.title.trim().length > 0;
 
   return (
     <div className="bg-white rounded-xl border-2 border-[#1a2e44]/30 shadow-paper p-5 space-y-4">
@@ -159,56 +166,51 @@ function AddChapterForm({
         </button>
       </div>
     </div>
-  )
+  );
 }
 
-export function BookDetail({
-  book,
-  onNavigate,
-  onUpdateBook,
-  onOpenEditBook,
-  onAddChapter,
-  onToggleChapterRead,
-  onStartReading,
-}: {
-  book: Book
-  onNavigate: NavigateFn
-  onUpdateBook: (id: string, updates: Partial<Book>) => void
-  onOpenEditBook: () => void
-  onAddChapter: (
-    bookId: string,
-    data: { title: string description?: string },
-  ) => void
-  onToggleChapterRead: (bookId: string, chapterId: string) => void
-  onStartReading: (bookId: string) => void
-}) {
-  const [activeTab, setActiveTab] =
-    useState<"chapters" | "summary" | "revisions">("chapters")
-  const [sessionOpen, setSessionOpen] = useState(false)
-  const [expandedChapter, setExpandedChapter] = useState<string | null>(null)
-  const [editingSummary, setEditingSummary] = useState(false)
-  const [summaryDraft, setSummaryDraft] = useState(book.summary ?? "")
-  const [addingChapter, setAddingChapter] = useState(false)
+export function BookDetail({ book }: { book: Book }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab: "chapters" | "summary" | "revisions" =
+    tabParam === "summary" || tabParam === "revisions" ? tabParam : "chapters";
+  const setActiveTab = (tab: "chapters" | "summary" | "revisions") => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "chapters") params.delete("tab");
+    else params.set("tab", tab);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  };
+  const [sessionOpen, setSessionOpen] = useState(false);
+  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
+  const [editingSummary, setEditingSummary] = useState(false);
+  const [summaryDraft, setSummaryDraft] = useState(book.summary ?? "");
+  const [addingChapter, setAddingChapter] = useState(false);
+  const [editBookOpen, setEditBookOpen] = useState(false);
 
-  const readChapters = book.chapters.filter((c) => c.isRead).length
+  const readChapters = book.chapters.filter((c) => c.isRead).length;
   const chaptersWithQuestions = book.chapters.filter(
     (c) => c.questions.length > 0,
-  )
+  );
   const totalQuestions = book.chapters.reduce(
     (a, c) => a + c.questions.length,
     0,
-  )
-  const avg = avgScore(book)
+  );
+  const avg = avgScore(book);
 
   const progress =
     book.totalChapters > 0 && readChapters > 0
       ? Math.round((readChapters / book.totalChapters) * 100)
-      : 0
+      : 0;
 
   const saveSummary = () => {
-    onUpdateBook(book.id, { summary: summaryDraft })
-    setEditingSummary(false)
-  }
+    updateBook(book.id, { summary: summaryDraft });
+    setEditingSummary(false);
+  };
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
@@ -216,8 +218,8 @@ export function BookDetail({
       <div className="bg-white border-b border-[#e4e2e2]">
         <div className="max-w-4xl mx-auto px-8 py-8">
           {/* Back */}
-          <button
-            onClick={() => onNavigate({ view: "library" })}
+          <Link
+            href="/biblioteca"
             className="flex items-center gap-2 text-[#74777d] hover:text-[#1b1c1c] text-xs font-[500] mb-6 transition-colors"
           >
             <svg
@@ -233,7 +235,7 @@ export function BookDetail({
               <polyline points="15 18 9 12 15 6" />
             </svg>
             Biblioteca
-          </button>
+          </Link>
 
           <div className="flex gap-8 items-start">
             <BookCover gradient={book.coverGradient} />
@@ -354,7 +356,7 @@ export function BookDetail({
             <div className="shrink-0 flex flex-col gap-2">
               {(book.status === "want" || book.status === "paused") && (
                 <button
-                  onClick={() => onStartReading(book.id)}
+                  onClick={() => startReading(book.id)}
                   className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
                 >
                   <svg
@@ -376,7 +378,7 @@ export function BookDetail({
               )}
 
               <button
-                onClick={onOpenEditBook}
+                onClick={() => setEditBookOpen(true)}
                 className="flex items-center gap-2 px-4 py-2.5 border border-[#e4e2e2] text-[#43474d] text-sm font-[500] rounded-lg hover:bg-[#f5f3f3] transition-colors"
               >
                 <svg
@@ -424,22 +426,18 @@ export function BookDetail({
                             direct: "🃏",
                             guided: "💬",
                             recognition: "🔍",
-                          }
+                          };
                           const descs = {
                             direct: "Lembro?",
                             guided: "Explico com minhas palavras?",
                             recognition: "Reconheço em situações reais?",
-                          }
+                          };
                           return (
                             <button
                               key={mode}
                               onClick={() => {
-                                setSessionOpen(false)
-                                onNavigate({
-                                  view: "session",
-                                  bookId: book.id,
-                                  sessionMode: mode,
-                                })
+                                setSessionOpen(false);
+                                startSessionAction(book.id, { mode });
                               }}
                               className="w-full px-4 py-3.5 text-left hover:bg-[#f5f3f3] transition-colors border-b border-[#f0eeee] last:border-0"
                             >
@@ -455,7 +453,7 @@ export function BookDetail({
                                 </div>
                               </div>
                             </button>
-                          )
+                          );
                         },
                       )}
                     </div>
@@ -469,16 +467,20 @@ export function BookDetail({
         {/* Tabs */}
         <div className="max-w-4xl mx-auto px-8">
           <div className="flex gap-1 border-b border-[#e4e2e2] -mb-px">
-            {([
-              { id: "chapters", label: "Capítulos" },
-              { id: "summary", label: "Resumo pessoal" },
-              {
-                id: "revisions",
-                label: `Revisões${
-                  book.revisions.length > 0 ? ` (${book.revisions.length})` : ""
-                }`,
-              },
-            ] as const).map((tab) => (
+            {(
+              [
+                { id: "chapters", label: "Capítulos" },
+                { id: "summary", label: "Resumo pessoal" },
+                {
+                  id: "revisions",
+                  label: `Revisões${
+                    book.revisions.length > 0
+                      ? ` (${book.revisions.length})`
+                      : ""
+                  }`,
+                },
+              ] as const
+            ).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -501,8 +503,8 @@ export function BookDetail({
         {activeTab === "chapters" && (
           <div className="space-y-2">
             {book.chapters.map((chapter) => {
-              const isExpanded = expandedChapter === chapter.id
-              const hasQ = chapter.questions.length > 0
+              const isExpanded = expandedChapter === chapter.id;
+              const hasQ = chapter.questions.length > 0;
 
               return (
                 <div
@@ -511,7 +513,7 @@ export function BookDetail({
                 >
                   <div className="w-full px-5 py-4 flex items-center gap-4 hover:bg-[#f9f7f4] transition-colors">
                     <button
-                      onClick={() => onToggleChapterRead(book.id, chapter.id)}
+                      onClick={() => toggleChapterRead(book.id, chapter.id)}
                       title={
                         chapter.isRead
                           ? "Marcar como não lido"
@@ -657,26 +659,18 @@ export function BookDetail({
                       )}
 
                       <div className="mt-4 flex gap-2">
-                        <button
-                          onClick={() =>
-                            onNavigate({
-                              view: "chapter",
-                              bookId: book.id,
-                              chapterId: chapter.id,
-                            })
-                          }
+                        <Link
+                          href={`/livros/${book.id}/capitulos/${chapter.id}`}
                           className="text-xs px-3 py-1.5 rounded-lg border border-[#e4e2e2] text-[#43474d] hover:bg-[#f5f3f3] transition-colors"
                         >
                           Abrir capítulo
-                        </button>
+                        </Link>
                         {hasQ && (
                           <button
                             onClick={() =>
-                              onNavigate({
-                                view: "session",
-                                bookId: book.id,
+                              startSessionAction(book.id, {
+                                mode: "direct",
                                 chapterId: chapter.id,
-                                sessionMode: "direct",
                               })
                             }
                             className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2e44]/8 text-[#1a2e44] hover:bg-[#1a2e44]/15 transition-colors font-[500]"
@@ -685,9 +679,7 @@ export function BookDetail({
                           </button>
                         )}
                         <button
-                          onClick={() =>
-                            onToggleChapterRead(book.id, chapter.id)
-                          }
+                          onClick={() => toggleChapterRead(book.id, chapter.id)}
                           className="text-xs px-3 py-1.5 rounded-lg border border-[#e4e2e2] text-[#43474d] hover:bg-[#f5f3f3] transition-colors"
                         >
                           {chapter.isRead
@@ -698,7 +690,7 @@ export function BookDetail({
                     </div>
                   )}
                 </div>
-              )
+              );
             })}
 
             {book.chapters.length === 0 && !addingChapter && (
@@ -724,8 +716,8 @@ export function BookDetail({
             {addingChapter && (
               <AddChapterForm
                 onSave={(data) => {
-                  onAddChapter(book.id, data)
-                  setAddingChapter(false)
+                  createChapter(book.id, data);
+                  setAddingChapter(false);
                 }}
                 onCancel={() => setAddingChapter(false)}
               />
@@ -773,8 +765,8 @@ export function BookDetail({
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={() => {
-                      setSummaryDraft(book.summary ?? "")
-                      setEditingSummary(false)
+                      setSummaryDraft(book.summary ?? "");
+                      setEditingSummary(false);
                     }}
                     className="px-4 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors"
                   >
@@ -796,8 +788,8 @@ export function BookDetail({
                   </div>
                   <button
                     onClick={() => {
-                      setSummaryDraft(book.summary ?? "")
-                      setEditingSummary(true)
+                      setSummaryDraft(book.summary ?? "");
+                      setEditingSummary(true);
                     }}
                     className="text-xs px-3 py-1.5 rounded-lg border border-[#e4e2e2] text-[#43474d] hover:bg-[#f5f3f3] transition-colors flex items-center gap-1.5"
                   >
@@ -852,8 +844,8 @@ export function BookDetail({
                 </p>
                 <button
                   onClick={() => {
-                    setSummaryDraft("")
-                    setEditingSummary(true)
+                    setSummaryDraft("");
+                    setEditingSummary(true);
                   }}
                   className="px-5 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
                 >
@@ -881,7 +873,7 @@ export function BookDetail({
                           ? "bg-[#8ba889]"
                           : r.score >= 60
                             ? "bg-[#f2d492]"
-                            : "bg-[#ba1a1a]/60"
+                            : "bg-[#ba1a1a]/60";
                       return (
                         <div
                           key={r.id}
@@ -909,13 +901,13 @@ export function BookDetail({
                             })}
                           </div>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                   {book.revisions.length >= 2 &&
                     (() => {
                       const diff =
-                        book.revisions.at(-1)!.score - book.revisions[0].score
+                        book.revisions.at(-1)!.score - book.revisions[0].score;
                       return (
                         <div className="mt-4 pt-4 border-t border-[#f0eeee] text-sm text-[#74777d]">
                           Da primeira à última revisão:{" "}
@@ -930,7 +922,7 @@ export function BookDetail({
                             {diff} pontos
                           </span>
                         </div>
-                      )
+                      );
                     })()}
                 </div>
 
@@ -954,9 +946,7 @@ export function BookDetail({
                 </p>
                 {chaptersWithQuestions.length > 0 && (
                   <button
-                    onClick={() =>
-                      onNavigate({ view: "session", bookId: book.id })
-                    }
+                    onClick={() => startSessionAction(book.id)}
                     className="px-5 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
                   >
                     Iniciar primeira revisão
@@ -967,6 +957,17 @@ export function BookDetail({
           </div>
         )}
       </div>
+
+      {editBookOpen && (
+        <BookModal
+          editBook={book}
+          onClose={() => setEditBookOpen(false)}
+          onSave={async (data) => {
+            await updateBook(book.id, data);
+            setEditBookOpen(false);
+          }}
+        />
+      )}
     </div>
-  )
+  );
 }

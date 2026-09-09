@@ -1,22 +1,26 @@
-import type { NavigateFn } from "../App"
-import type { Book } from "../data"
+import Link from "next/link";
+import type { Book } from "@/domain/types";
+import { ANNUAL_GOAL, modeLabels } from "@/domain/constants";
 import {
-  ANNUAL_GOAL,
   getReadingBook,
   getCompletedBooks,
-  modeLabels,
+  getRecommendedBook,
   avgScore,
-} from "../data"
+  readingProgress,
+  daysSince,
+  timeline,
+} from "@/domain/derived";
+import { startSessionAction } from "@/app/actions/sessions";
 
 function BookCover({
   gradient,
   size = "md",
 }: {
-  gradient: [string, string]
-  size?: "sm" | "md" | "lg"
+  gradient: [string, string];
+  size?: "sm" | "md" | "lg";
 }) {
   const dims =
-    size === "sm" ? "w-8 h-11" : size === "md" ? "w-12 h-17" : "w-20 h-28"
+    size === "sm" ? "w-8 h-11" : size === "md" ? "w-12 h-17" : "w-20 h-28";
   return (
     <div
       className={`${dims} rounded-[5px] shrink-0`}
@@ -27,7 +31,7 @@ function BookCover({
         minHeight: size === "sm" ? "44px" : size === "md" ? "68px" : "112px",
       }}
     />
-  )
+  );
 }
 
 function ScoreChip({ score }: { score: number }) {
@@ -36,64 +40,41 @@ function ScoreChip({ score }: { score: number }) {
       ? "text-[#2a5628] bg-[#8ba889]/20"
       : score >= 60
         ? "text-[#7a5a00] bg-[#f2d492]/30"
-        : "text-[#ba1a1a] bg-[#ba1a1a]/10"
+        : "text-[#ba1a1a] bg-[#ba1a1a]/10";
   return (
     <span
       className={`text-[11px] font-mono font-[500] px-2 py-0.5 rounded-full ${color}`}
     >
       {score}%
     </span>
-  )
+  );
 }
 
 export function Dashboard({
   books,
-  onNavigate,
+  dateStr,
 }: {
-  books: Book[]
-  onNavigate: NavigateFn
+  books: Book[];
+  dateStr: string;
 }) {
-  const readingBook = getReadingBook(books)
-  const completed = getCompletedBooks(books)
-  const recommendedBook =
-    books.find((b) => b.id === "b1") ??
-    books.find((b) => b.status === "reading")
-
-  const today = new Date()
-  const dateStr = today.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  })
-  const capitalDate = dateStr.charAt(0).toUpperCase() + dateStr.slice(1)
+  const readingBook = getReadingBook(books);
+  const completed = getCompletedBooks(books);
+  const recommendedBook = getRecommendedBook(books);
 
   const daysSinceRevision = recommendedBook?.lastRevision
-    ? Math.floor(
-        (today.getTime() - new Date(recommendedBook.lastRevision).getTime()) /
-          86400000,
-      )
-    : null
+    ? daysSince(recommendedBook.lastRevision)
+    : null;
 
-  const readChapters = readingBook?.chapters.filter((c) => c.isRead).length ?? 0
-  const readingProgress =
-    readingBook && readingBook.totalChapters > 0
-      ? Math.round((readChapters / readingBook.totalChapters) * 100)
-      : 0
-
-  const recAvgScore = recommendedBook ? avgScore(recommendedBook) : null
-
-  // Recent revision timeline: all revisions across all books, sorted by date desc
-  const timeline = books
-    .flatMap((b) => b.revisions.map((r) => ({ ...r, book: b })))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 8)
+  const progress = readingBook ? readingProgress(readingBook) : 0;
+  const recAvgScore = recommendedBook ? avgScore(recommendedBook) : null;
+  const revisionTimeline = timeline(books);
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
       {/* Header */}
       <div>
         <div className="text-xs text-[#74777d] font-[500] uppercase tracking-widest mb-1">
-          {capitalDate}
+          {dateStr}
         </div>
         <h1
           style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
@@ -110,9 +91,9 @@ export function Dashboard({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Currently reading */}
         {readingBook ? (
-          <div
-            className="bg-white rounded-xl p-6 shadow-paper cursor-pointer hover:shadow-paper-lg transition-shadow flex flex-col"
-            onClick={() => onNavigate({ view: "book", bookId: readingBook.id })}
+          <Link
+            href={`/livros/${readingBook.id}`}
+            className="bg-white rounded-xl p-6 shadow-paper hover:shadow-paper-lg transition-shadow flex flex-col"
           >
             <div className="text-[10px] text-[#74777d] font-[500] uppercase tracking-widest mb-4">
               Lendo agora
@@ -137,13 +118,13 @@ export function Dashboard({
                       {readingBook.totalChapters}
                     </span>
                     <span className="font-mono font-[600] text-[#1a2e44]">
-                      {readingProgress}%
+                      {progress}%
                     </span>
                   </div>
                   <div className="h-[2px] bg-[#e4e2e2] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[#8ba889] rounded-full"
-                      style={{ width: `${readingProgress}%` }}
+                      style={{ width: `${progress}%` }}
                     />
                   </div>
                 </div>
@@ -151,29 +132,23 @@ export function Dashboard({
             </div>
 
             <div className="mt-6">
-              <button
-                className="text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onNavigate({ view: "book", bookId: readingBook.id })
-                }}
-              >
+              <span className="inline-block text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors">
                 Abrir livro
-              </button>
+              </span>
             </div>
-          </div>
+          </Link>
         ) : (
           <div className="bg-white rounded-xl p-6 shadow-paper flex flex-col items-center justify-center border border-dashed border-[#c4c6cd]">
             <div className="text-center">
               <div className="text-[#74777d] text-sm">
                 Nenhum livro em leitura
               </div>
-              <button
-                className="mt-3 text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600]"
-                onClick={() => onNavigate({ view: "library" })}
+              <Link
+                href="/biblioteca"
+                className="mt-3 inline-block text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600]"
               >
                 Ver biblioteca
-              </button>
+              </Link>
             </div>
           </div>
         )}
@@ -234,14 +209,20 @@ export function Dashboard({
             </div>
 
             <div className="mt-6">
-              <button
-                className="text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors"
-                onClick={() =>
-                  onNavigate({ view: "session", bookId: recommendedBook.id })
-                }
+              <form
+                action={startSessionAction.bind(
+                  null,
+                  recommendedBook.id,
+                  undefined,
+                )}
               >
-                Iniciar revisão
-              </button>
+                <button
+                  type="submit"
+                  className="text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors"
+                >
+                  Iniciar revisão
+                </button>
+              </form>
             </div>
           </div>
         )}
@@ -307,7 +288,7 @@ export function Dashboard({
           Histórico de revisões
         </div>
 
-        {timeline.length === 0 ? (
+        {revisionTimeline.length === 0 ? (
           <div className="py-8 text-center text-sm text-[#74777d]">
             Nenhuma revisão registrada ainda.
           </div>
@@ -317,14 +298,14 @@ export function Dashboard({
             <div className="absolute left-[15px] top-0 bottom-0 w-px bg-[#e4e2e2]" />
 
             <div className="space-y-0">
-              {timeline.map((item, idx) => {
-                const revDate = new Date(item.date)
+              {revisionTimeline.map((item, idx) => {
+                const revDate = new Date(item.date);
                 const dateLabel = revDate.toLocaleDateString("pt-BR", {
                   day: "2-digit",
                   month: "short",
                   year: "2-digit",
-                })
-                const isFirst = idx === 0
+                });
+                const isFirst = idx === 0;
 
                 return (
                   <div key={item.id} className="flex items-center gap-4 py-3">
@@ -340,11 +321,9 @@ export function Dashboard({
                     </div>
 
                     {/* Content */}
-                    <button
+                    <Link
+                      href={`/livros/${item.book.id}`}
                       className="flex-1 flex items-center gap-3 text-left hover:bg-[#f5f3f3] rounded-lg px-3 py-2 -mx-3 transition-colors group"
-                      onClick={() =>
-                        onNavigate({ view: "book", bookId: item.book.id })
-                      }
                     >
                       <BookCover gradient={item.book.coverGradient} size="sm" />
                       <div className="flex-1 min-w-0">
@@ -361,14 +340,14 @@ export function Dashboard({
                           {dateLabel}
                         </div>
                       </div>
-                    </button>
+                    </Link>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,25 +1,28 @@
-import { useState, useCallback } from "react"
-import type { NavigateFn } from "../App"
+"use client";
+
+import { useState, useCallback } from "react";
+import Link from "next/link";
 import type {
   Book,
   Chapter,
   SessionMode,
   Question,
   Performance,
-  RevisionRecord,
-} from "../data"
+} from "@/domain/types";
+import { modeLabels } from "@/domain/constants";
 import {
-  modeLabels,
   generateDirectPrompt,
   generateRecognitionPrompt,
-} from "../data"
+} from "@/domain/prompts";
+import { calculateScore } from "@/domain/derived";
+import { completeSessionAction } from "@/app/actions/sessions";
 
 interface SessionResults {
-  correct: number
-  partial: number
-  wrong: number
-  total: number
-  score: number
+  correct: number;
+  partial: number;
+  wrong: number;
+  total: number;
+  score: number;
 }
 
 function ModeCard({
@@ -27,9 +30,9 @@ function ModeCard({
   selected,
   onSelect,
 }: {
-  mode: SessionMode
-  selected: boolean
-  onSelect: () => void
+  mode: SessionMode;
+  selected: boolean;
+  onSelect: () => void;
 }) {
   const config = {
     direct: {
@@ -53,9 +56,9 @@ function ModeCard({
         "Gere situações do mundo real e identifique o conceito por trás — sem que o tema seja revelado antecipadamente.",
       tag: "Via IA",
     },
-  } as const
+  } as const;
 
-  const c = config[mode]
+  const c = config[mode];
 
   return (
     <button
@@ -109,7 +112,7 @@ function ModeCard({
         </div>
       </div>
     </button>
-  )
+  );
 }
 
 function DirectSession({
@@ -117,43 +120,48 @@ function DirectSession({
   book,
   onFinish,
 }: {
-  questions: Array<{ question: Question chapter: Chapter }>
-  book: Book
-  onFinish: (results: SessionResults) => void
+  questions: Array<{ question: Question; chapter: Chapter }>;
+  book: Book;
+  onFinish: (results: SessionResults) => void;
 }) {
-  const [currentIdx, setCurrentIdx] = useState(0)
-  const [revealed, setRevealed] = useState(false)
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [revealed, setRevealed] = useState(false);
   const [performances, setPerformances] = useState<Record<string, Performance>>(
     {},
-  )
+  );
 
-  const current = questions[currentIdx]
-  const progress = Math.round(((currentIdx + 1) / questions.length) * 100)
+  const current = questions[currentIdx];
+  const progress = Math.round(((currentIdx + 1) / questions.length) * 100);
 
   const rate = useCallback(
     (perf: Performance) => {
-      const newPerf = { ...performances, [current.question.id]: perf }
-      setPerformances(newPerf)
+      const newPerf = { ...performances, [current.question.id]: perf };
+      setPerformances(newPerf);
 
       if (currentIdx < questions.length - 1) {
-        setCurrentIdx((i) => i + 1)
-        setRevealed(false)
+        setCurrentIdx((i) => i + 1);
+        setRevealed(false);
       } else {
         const correct = Object.values(newPerf).filter(
           (p) => p === "correct",
-        ).length
+        ).length;
         const partial = Object.values(newPerf).filter(
           (p) => p === "partial",
-        ).length
-        const wrong = Object.values(newPerf).filter((p) => p === "wrong").length
-        const score = Math.round(
-          ((correct + partial * 0.5) / questions.length) * 100,
-        )
-        onFinish({ correct, partial, wrong, total: questions.length, score })
+        ).length;
+        const wrong = Object.values(newPerf).filter(
+          (p) => p === "wrong",
+        ).length;
+        const score = calculateScore({
+          correct,
+          partial,
+          wrong,
+          total: questions.length,
+        });
+        onFinish({ correct, partial, wrong, total: questions.length, score });
       }
     },
     [current, currentIdx, performances, questions.length, onFinish],
-  )
+  );
 
   return (
     <div className="max-w-2xl mx-auto px-8 py-8 space-y-5">
@@ -264,53 +272,54 @@ function DirectSession({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function PromptDisplay({
   mode,
   book,
   chapter,
+  onSaveResult,
 }: {
-  mode: "guided" | "recognition"
-  book: Book
-  chapter?: Chapter
+  mode: "guided" | "recognition";
+  book: Book;
+  chapter?: Chapter;
+  onSaveResult: (results: SessionResults) => void;
 }) {
-  const [copied, setCopied] = useState(false)
-  const [showResultForm, setShowResultForm] = useState(false)
+  const [copied, setCopied] = useState(false);
+  const [showResultForm, setShowResultForm] = useState(false);
   const [resultForm, setResultForm] = useState({
     correct: 0,
     partial: 0,
     wrong: 0,
-  })
-  const [resultSaved, setResultSaved] = useState<SessionResults | null>(null)
+  });
+  const [resultSaved, setResultSaved] = useState<SessionResults | null>(null);
 
-  const chapterIds = chapter ? [chapter.id] : undefined
+  const chapterIds = chapter ? [chapter.id] : undefined;
   const prompt =
     mode === "guided"
       ? generateDirectPrompt(book, chapterIds)
-      : generateRecognitionPrompt(book, chapterIds)
+      : generateRecognitionPrompt(book, chapterIds);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(prompt)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    navigator.clipboard.writeText(prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const totalQuestions =
-    resultForm.correct + resultForm.partial + resultForm.wrong
+    resultForm.correct + resultForm.partial + resultForm.wrong;
   const calcScore =
     totalQuestions > 0
-      ? Math.round(
-          ((resultForm.correct + resultForm.partial * 0.5) / totalQuestions) *
-            100,
-        )
-      : 0
+      ? calculateScore({ ...resultForm, total: totalQuestions })
+      : 0;
 
   const handleSaveResult = () => {
-    setResultSaved({ ...resultForm, total: totalQuestions, score: calcScore })
-    setShowResultForm(false)
-  }
+    const result = { ...resultForm, total: totalQuestions, score: calcScore };
+    setResultSaved(result);
+    setShowResultForm(false);
+    onSaveResult(result);
+  };
 
   const c =
     mode === "guided"
@@ -325,7 +334,7 @@ function PromptDisplay({
           emoji: "🔍",
           instruction:
             "Copie o prompt e cole em uma IA. Você receberá situações práticas sem revelar o conceito testado. Ao final, a IA apresentará um RESULTADO DA SESSÃO — use esses dados para registrar seu desempenho aqui.",
-        }
+        };
 
   return (
     <div className="max-w-3xl mx-auto px-8 py-8 space-y-6">
@@ -437,29 +446,31 @@ function PromptDisplay({
               </p>
 
               <div className="grid grid-cols-3 gap-4">
-                {([
-                  {
-                    key: "correct",
-                    label: "Acertei",
-                    color: "text-[#2a5628]",
-                    border: "border-[#8ba889]/40",
-                    bg: "bg-[#8ba889]/[0.04]",
-                  },
-                  {
-                    key: "partial",
-                    label: "Parcial",
-                    color: "text-[#7a5a00]",
-                    border: "border-[#f2d492]/60",
-                    bg: "bg-[#f2d492]/[0.08]",
-                  },
-                  {
-                    key: "wrong",
-                    label: "Errei",
-                    color: "text-[#ba1a1a]",
-                    border: "border-[#ba1a1a]/25",
-                    bg: "bg-[#ba1a1a]/[0.04]",
-                  },
-                ] as const).map(({ key, label, color, border, bg }) => (
+                {(
+                  [
+                    {
+                      key: "correct",
+                      label: "Acertei",
+                      color: "text-[#2a5628]",
+                      border: "border-[#8ba889]/40",
+                      bg: "bg-[#8ba889]/[0.04]",
+                    },
+                    {
+                      key: "partial",
+                      label: "Parcial",
+                      color: "text-[#7a5a00]",
+                      border: "border-[#f2d492]/60",
+                      bg: "bg-[#f2d492]/[0.08]",
+                    },
+                    {
+                      key: "wrong",
+                      label: "Errei",
+                      color: "text-[#ba1a1a]",
+                      border: "border-[#ba1a1a]/25",
+                      bg: "bg-[#ba1a1a]/[0.04]",
+                    },
+                  ] as const
+                ).map(({ key, label, color, border, bg }) => (
                   <div key={key}>
                     <label className={`text-xs font-[600] ${color} mb-2 block`}>
                       {label}
@@ -572,21 +583,19 @@ function PromptDisplay({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function ResultsScreen({
   results,
   book,
-  onNavigate,
   onBack,
 }: {
-  results: SessionResults
-  book: Book
-  onNavigate: NavigateFn
-  onBack: () => void
+  results: SessionResults;
+  book: Book;
+  onBack: () => void;
 }) {
-  const { correct, partial, wrong, total, score } = results
+  const { correct, partial, wrong, total, score } = results;
   const message =
     score >= 90
       ? "Excelente domínio! O conhecimento está bem consolidado."
@@ -594,20 +603,20 @@ function ResultsScreen({
         ? "Bom desempenho. Continue revisando para consolidar."
         : score >= 60
           ? "Progresso razoável. Algumas lacunas a trabalhar."
-          : "Ainda há bastante espaço para crescer. Revise logo novamente."
+          : "Ainda há bastante espaço para crescer. Revise logo novamente.";
 
   const scoreColor =
     score >= 80
       ? "text-[#2a5628]"
       : score >= 60
         ? "text-[#7a5a00]"
-        : "text-[#ba1a1a]"
+        : "text-[#ba1a1a]";
   const scoreBorder =
     score >= 80
       ? "border-[#8ba889]/40"
       : score >= 60
         ? "border-[#f2d492]/60"
-        : "border-[#ba1a1a]/30"
+        : "border-[#ba1a1a]/30";
 
   return (
     <div className="max-w-2xl mx-auto px-8 py-8 space-y-8">
@@ -701,69 +710,81 @@ function ResultsScreen({
         >
           Nova sessão
         </button>
-        <button
-          onClick={() => onNavigate({ view: "book", bookId: book.id })}
-          className="flex-1 py-3 rounded-xl bg-[#1a2e44] text-white text-sm font-[600] hover:bg-[#2d4460] transition-all"
+        <Link
+          href={`/livros/${book.id}`}
+          className="flex-1 py-3 rounded-xl bg-[#1a2e44] text-white text-sm font-[600] hover:bg-[#2d4460] transition-all text-center"
         >
           Voltar ao livro
-        </button>
+        </Link>
       </div>
     </div>
-  )
+  );
 }
 
 export function MemorizationSession({
+  sessionId,
   book,
   chapter,
   initialMode,
-  onNavigate,
-  onAddRevision,
 }: {
-  book: Book
-  chapter?: Chapter
-  initialMode?: SessionMode
-  onNavigate: NavigateFn
-  onAddRevision: (bookId: string, revision: Omit<RevisionRecord, "id">) => void
+  sessionId: string;
+  book: Book;
+  chapter?: Chapter;
+  initialMode?: SessionMode;
 }) {
   const [selectedMode, setSelectedMode] = useState<SessionMode | null>(
     initialMode ?? null,
-  )
+  );
   const [step, setStep] = useState<"select" | "session" | "results">(
     initialMode ? "session" : "select",
-  )
-  const [results, setResults] = useState<SessionResults | null>(null)
+  );
+  const [results, setResults] = useState<SessionResults | null>(null);
 
   const eligibleChapters = chapter
     ? [chapter]
-    : book.chapters.filter((c) => c.questions.length > 0)
+    : book.chapters.filter((c) => c.questions.length > 0);
 
   const allQuestions: Array<{
-    question: import("../data").Question
-    chapter: Chapter
+    question: Question;
+    chapter: Chapter;
   }> = eligibleChapters.flatMap((c) =>
     c.questions.map((q) => ({ question: q, chapter: c })),
-  )
+  );
 
-  const handleFinish = useCallback(
-    (r: SessionResults) => {
-      setResults(r)
-      setStep("results")
-      onAddRevision(book.id, {
+  const persistRevision = useCallback(
+    (r: SessionResults, mode: SessionMode) => {
+      completeSessionAction(sessionId, {
         date: new Date().toISOString().slice(0, 10),
-        mode: selectedMode ?? "direct",
+        mode,
         score: r.score,
         questionsCount: r.total,
         difficultTopics: [],
-      })
+      });
     },
-    [book.id, selectedMode, onAddRevision],
-  )
+    [sessionId],
+  );
+
+  const handleFinish = useCallback(
+    (r: SessionResults) => {
+      setResults(r);
+      setStep("results");
+      persistRevision(r, selectedMode ?? "direct");
+    },
+    [persistRevision, selectedMode],
+  );
+
+  const handleSaveResult = useCallback(
+    (r: SessionResults) => {
+      persistRevision(r, selectedMode ?? "guided");
+    },
+    [persistRevision, selectedMode],
+  );
 
   const handleBack = () => {
-    setStep("select")
-    setSelectedMode(null)
-    setResults(null)
-  }
+    setStep("select");
+    setSelectedMode(null);
+    setResults(null);
+  };
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
@@ -771,8 +792,8 @@ export function MemorizationSession({
       <div className="bg-white border-b border-[#e4e2e2]">
         <div className="max-w-3xl mx-auto px-8 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => onNavigate({ view: "book", bookId: book.id })}
+            <Link
+              href={`/livros/${book.id}`}
               className="flex items-center gap-2 text-[#74777d] hover:text-[#1b1c1c] text-xs font-[500] transition-colors"
             >
               <svg
@@ -787,7 +808,7 @@ export function MemorizationSession({
                 <polyline points="15 18 9 12 15 6" />
               </svg>
               {book.title}
-            </button>
+            </Link>
             {chapter && (
               <>
                 <span className="text-[#c4c6cd] text-xs">/</span>
@@ -891,17 +912,17 @@ export function MemorizationSession({
 
       {step === "session" &&
         (selectedMode === "guided" || selectedMode === "recognition") && (
-          <PromptDisplay mode={selectedMode} book={book} chapter={chapter} />
+          <PromptDisplay
+            mode={selectedMode}
+            book={book}
+            chapter={chapter}
+            onSaveResult={handleSaveResult}
+          />
         )}
 
       {step === "results" && results && (
-        <ResultsScreen
-          results={results}
-          book={book}
-          onNavigate={onNavigate}
-          onBack={handleBack}
-        />
+        <ResultsScreen results={results} book={book} onBack={handleBack} />
       )}
     </div>
-  )
+  );
 }

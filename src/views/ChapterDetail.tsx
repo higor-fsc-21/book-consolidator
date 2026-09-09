@@ -1,22 +1,26 @@
-import { useState } from "react"
-import type { NavigateFn } from "../App"
-import type { Book, Chapter, Question, Difficulty } from "../data"
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import type { Book, Chapter, Question, Difficulty } from "@/domain/types";
+import { createQuestion } from "@/app/actions/questions";
+import { startSessionAction } from "@/app/actions/sessions";
 
 function QuestionCard({
   question,
   index,
 }: {
-  question: Question
-  index: number
+  question: Question;
+  index: number;
 }) {
-  const [revealed, setRevealed] = useState(false)
+  const [revealed, setRevealed] = useState(false);
 
   const difficultyStyle = {
     hard: "bg-[#ba1a1a]/10 text-[#ba1a1a]",
     medium: "bg-[#f2d492]/30 text-[#7a5a00]",
     easy: "bg-[#8ba889]/20 text-[#2a5628]",
-  }
-  const difficultyLabel = { hard: "difícil", medium: "médio", easy: "fácil" }
+  };
+  const difficultyLabel = { hard: "difícil", medium: "médio", easy: "fácil" };
 
   return (
     <div className="bg-white rounded-xl border border-[#e4e2e2] shadow-paper-sm overflow-hidden">
@@ -94,28 +98,28 @@ function QuestionCard({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 interface NewQuestionForm {
-  text: string
-  answer: string
-  difficulty: Difficulty
+  text: string;
+  answer: string;
+  difficulty: Difficulty;
 }
 
 function AddQuestionForm({
   onSave,
   onCancel,
 }: {
-  onSave: (q: NewQuestionForm) => void
-  onCancel: () => void
+  onSave: (q: NewQuestionForm) => void;
+  onCancel: () => void;
 }) {
   const [form, setForm] = useState<NewQuestionForm>({
     text: "",
     answer: "",
     difficulty: "medium",
-  })
-  const canSave = form.text.trim() && form.answer.trim()
+  });
+  const canSave = form.text.trim() && form.answer.trim();
 
   return (
     <div className="bg-white rounded-xl border-2 border-[#1a2e44]/30 shadow-paper p-5 space-y-4">
@@ -159,7 +163,7 @@ function AddQuestionForm({
         </label>
         <div className="flex gap-2">
           {(["easy", "medium", "hard"] as Difficulty[]).map((d) => {
-            const labels = { easy: "Fácil", medium: "Médio", hard: "Difícil" }
+            const labels = { easy: "Fácil", medium: "Médio", hard: "Difícil" };
             return (
               <button
                 key={d}
@@ -172,7 +176,7 @@ function AddQuestionForm({
               >
                 {labels[d]}
               </button>
-            )
+            );
           })}
         </div>
       </div>
@@ -193,33 +197,32 @@ function AddQuestionForm({
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 export function ChapterDetail({
   book,
   chapter,
-  onNavigate,
-  onAddQuestion,
 }: {
-  book: Book
-  chapter: Chapter
-  onNavigate: NavigateFn
-  onAddQuestion: (
-    bookId: string,
-    chapterId: string,
-    q: Omit<import("../data").Question, "id">,
-  ) => void
+  book: Book;
+  chapter: Chapter;
 }) {
-  const [addingQuestion, setAddingQuestion] = useState(false)
-  const hasQ = chapter.questions.length > 0
-  const prevChapter = book.chapters.find((c) => c.number === chapter.number - 1)
-  const nextChapter = book.chapters.find((c) => c.number === chapter.number + 1)
+  const [addingQuestion, setAddingQuestion] = useState(false);
+  const hasQ = chapter.questions.length > 0;
+  const prevChapter = book.chapters.find(
+    (c) => c.number === chapter.number - 1,
+  );
+  const nextChapter = book.chapters.find(
+    (c) => c.number === chapter.number + 1,
+  );
 
   const handleSaveQuestion = (form: NewQuestionForm) => {
-    onAddQuestion(book.id, chapter.id, { ...form, lastPerformance: undefined })
-    setAddingQuestion(false)
-  }
+    createQuestion(book.id, chapter.id, {
+      ...form,
+      lastPerformance: undefined,
+    } satisfies Omit<Question, "id">);
+    setAddingQuestion(false);
+  };
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
@@ -228,12 +231,12 @@ export function ChapterDetail({
         <div className="max-w-3xl mx-auto px-8 py-8">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-xs font-[500] text-[#74777d] mb-6">
-            <button
-              onClick={() => onNavigate({ view: "library" })}
+            <Link
+              href="/biblioteca"
               className="hover:text-[#1b1c1c] transition-colors"
             >
               Biblioteca
-            </button>
+            </Link>
             <svg
               width="12"
               height="12"
@@ -244,12 +247,12 @@ export function ChapterDetail({
             >
               <polyline points="9 18 15 12 9 6" />
             </svg>
-            <button
-              onClick={() => onNavigate({ view: "book", bookId: book.id })}
+            <Link
+              href={`/livros/${book.id}`}
               className="hover:text-[#1b1c1c] transition-colors truncate max-w-[160px]"
             >
               {book.title}
-            </button>
+            </Link>
             <svg
               width="12"
               height="12"
@@ -284,11 +287,9 @@ export function ChapterDetail({
             {hasQ && (
               <button
                 onClick={() =>
-                  onNavigate({
-                    view: "session",
-                    bookId: book.id,
+                  startSessionAction(book.id, {
+                    mode: "direct",
                     chapterId: chapter.id,
-                    sessionMode: "direct",
                   })
                 }
                 className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
@@ -430,14 +431,8 @@ export function ChapterDetail({
         {/* Chapter navigation */}
         <div className="flex gap-3 pt-4 border-t border-[#e4e2e2]">
           {prevChapter && (
-            <button
-              onClick={() =>
-                onNavigate({
-                  view: "chapter",
-                  bookId: book.id,
-                  chapterId: prevChapter.id,
-                })
-              }
+            <Link
+              href={`/livros/${book.id}/capitulos/${prevChapter.id}`}
               className="flex-1 px-4 py-3.5 bg-white rounded-xl border border-[#e4e2e2] shadow-paper-sm hover:shadow-paper transition-shadow text-left"
             >
               <div className="text-[10px] font-[500] text-[#74777d] mb-1">
@@ -446,17 +441,11 @@ export function ChapterDetail({
               <div className="text-sm font-[500] text-[#1b1c1c] truncate">
                 {prevChapter.title}
               </div>
-            </button>
+            </Link>
           )}
           {nextChapter && (
-            <button
-              onClick={() =>
-                onNavigate({
-                  view: "chapter",
-                  bookId: book.id,
-                  chapterId: nextChapter.id,
-                })
-              }
+            <Link
+              href={`/livros/${book.id}/capitulos/${nextChapter.id}`}
               className="flex-1 px-4 py-3.5 bg-white rounded-xl border border-[#e4e2e2] shadow-paper-sm hover:shadow-paper transition-shadow text-right"
             >
               <div className="text-[10px] font-[500] text-[#74777d] mb-1">
@@ -465,10 +454,10 @@ export function ChapterDetail({
               <div className="text-sm font-[500] text-[#1b1c1c] truncate">
                 {nextChapter.title}
               </div>
-            </button>
+            </Link>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }
