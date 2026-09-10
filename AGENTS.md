@@ -10,6 +10,10 @@ Application for readers to transform reading into retained, explainable, and app
 - `pnpm start` - Start the production server (`next start -p ${PORT:-8443}`)
 - `pnpm format` - Format code using `oxfmt`
 - `pnpm exec tsc --noEmit` - Typecheck TypeScript code without emitting artifacts
+- `pnpm db:up` / `pnpm db:down` - Start/stop the local Postgres container (Docker Compose)
+- `pnpm db:migrate` - Apply Prisma migrations (`prisma migrate dev`)
+- `pnpm db:seed` - Seed the database from `src/domain/mock.ts` (`prisma/seed.ts`)
+- `pnpm db:studio` - Open Prisma Studio to inspect data
 
 ## Architecture & Domain Model
 

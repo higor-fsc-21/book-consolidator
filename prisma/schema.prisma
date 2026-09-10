@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ReadingStatus {
+  want
+  reading
+  completed
+  paused
+  archived
+}
+
+enum ConsolidationState {
+  consolidating
+  consolidated
+  archived
+}
+
+enum SessionMode {
+  direct
+  guided
+  recognition
+}
+
+enum Performance {
+  correct
+  partial
+  wrong
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+model User {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authUserId String?   @unique
+  name       String
+  email      String    @unique
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+
+  books    Book[]
+  sessions RevisionSession[]
+}
+
+model Book {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String             @db.Uuid
+  title              String
+  author             String
+  status             ReadingStatus
+  importance         Int
+  startDate          DateTime?          @db.Date
+  endDate            DateTime?          @db.Date
+  currentChapter     Int?
+  totalChapters      Int
+  consolidationState ConsolidationState
+  lastRevision       DateTime?          @db.Date
+  nextRevision       DateTime?          @db.Date
+  summary            String?
+  pages              Int?
+  year               Int?
+  coverUrl           String?
+  googleBooksId      String?
+  createdAt          DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @db.Timestamptz(3)
+  deletedAt          DateTime?          @db.Timestamptz(3)
+
+  user     User              @relation(fields: [userId], references: [id])
+  chapters Chapter[]
+  sessions RevisionSession[]
+
+  @@index([userId, deletedAt])
+}
+
+model Chapter {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bookId      String   @db.Uuid
+  number      Int
+  title       String
+  description String?
+  summary     String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  book             Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  questions        Question[]
+  revisionSessions RevisionSession[]
+
+  @@unique([bookId, number])
+  @@index([bookId])
+}
+
+model Question {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  chapterId  String     @db.Uuid
+  text       String
+  answer     String
+  difficulty Difficulty
+  createdAt  DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime   @updatedAt @db.Timestamptz(3)
+
+  chapter  Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  attempts SessionAttempt[]
+
+  @@index([chapterId])
+}
+
+model RevisionSession {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String       @db.Uuid
+  bookId      String       @db.Uuid
+  chapterId   String?      @db.Uuid
+  mode        SessionMode?
+  score       Float?
+  startedAt   DateTime     @db.Timestamptz(3)
+  completedAt DateTime?    @db.Timestamptz(3)
+  createdAt   DateTime     @default(now()) @db.Timestamptz(3)
+
+  user     User             @relation(fields: [userId], references: [id])
+  book     Book             @relation(fields: [bookId], references: [id])
+  chapter  Chapter?         @relation(fields: [chapterId], references: [id])
+  attempts SessionAttempt[]
+
+  @@index([userId, bookId])
+}
+
+model SessionAttempt {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId   String      @db.Uuid
+  questionId  String?     @db.Uuid
+  performance Performance
+  userAnswer  String?
+  attemptedAt DateTime    @default(now()) @db.Timestamptz(3)
+
+  session  RevisionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question Question?       @relation(fields: [questionId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@index([questionId])
+}

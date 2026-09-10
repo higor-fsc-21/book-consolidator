@@ -718,3 +718,57 @@ interface Logger {
 **Motivo:** a API é consumida apenas pelo próprio Next.js.
 
 **Reavaliar se:** surgir aplicativo mobile ou integração de terceiros.
+
+---
+
+## D41 — Persistência do gradiente de capa
+
+**Contexto:** [D30](#d30--capas-e-metadados-de-livros) introduz `coverUrl`, mas o schema da
+Fase 2 não tem coluna para `coverGradient`.
+
+**Alternativas:** coluna `coverGradientIndex` · coluna `String[]` com as duas cores · derivar
+o gradiente de fallback a partir do id do livro em tempo de renderização.
+
+**Decisão:** **derivar em tempo de renderização**, sem coluna.
+
+**Motivo:** o gradiente é puramente um fallback visual quando não há `coverUrl`
+([D30](#d30--capas-e-metadados-de-livros)); calculá-lo a partir do id evita uma coluna cujo
+único propósito é estético e nunca é editada pelo usuário.
+
+**Implicações:** a Fase 3 cria um helper determinístico (id do livro → índice em
+`COVER_GRADIENTS`) reutilizado onde a capa é renderizada.
+
+---
+
+## D42 — Exclusão física de perguntas e histórico de tentativas
+
+**Contexto:** [D27](#d27--exclusão-de-dados) permite exclusão física de perguntas, mas
+[D14](#d14--histórico-de-desempenho) depende de `SessionAttempt` para o histórico real.
+
+**Decisão:** `SessionAttempt.questionId` é **opcional**, com `onDelete: SetNull`.
+
+**Motivo:** excluir uma pergunta não deve apagar as tentativas já registradas contra ela; o
+histórico de desempenho da sessão permanece intacto, apenas perdendo o vínculo com a
+pergunta removida.
+
+**Implicações:** consultas que exibem o histórico de uma sessão devem tratar
+`attempt.questionId` (e a pergunta relacionada) como potencialmente nulos.
+
+---
+
+## D43 — Postgres local em Docker + Supabase
+
+**Contexto:** [D07](#d07--provedor-do-postgresql) já decide Supabase como provedor
+gerenciado, mas o desenvolvimento do dia a dia não deve depender de rede/latência externa.
+
+**Decisão:** **ambos** — Postgres local via Docker Compose para desenvolvimento, Supabase
+como banco compartilhado/produção.
+
+**Motivo:** desenvolvimento local rápido e offline-friendly, com paridade de schema garantida
+pelas mesmas migrations do Prisma aplicadas nos dois ambientes.
+
+**Implicações:**
+
+- A troca entre ambientes é feita apenas via `DATABASE_URL`/`DIRECT_URL` no `.env`.
+- `docker-compose.yml` expõe o Postgres local na porta `55432` (não `5432`), evitando
+  conflito com outros containers Postgres já em uso na máquina do desenvolvedor.
