@@ -1,7 +1,8 @@
-"use client";
+"use client"; /* Header */ /* Breadcrumb */ /* Content */ /* Summary */ /* Questions */ /* Chapter navigation */ /* Delete Chapter Confirmation Modal */
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type {
   Book,
   Chapter,
@@ -10,19 +11,23 @@ import type {
   Performance,
 } from "@/domain/types";
 import { lastPerformance } from "@/domain/derived";
-import { createQuestion } from "@/app/actions/questions";
+import { createQuestion, deleteQuestion } from "@/app/actions/questions";
+import { deleteChapter } from "@/app/actions/chapters";
 import { startSessionAction } from "@/app/actions/sessions";
 
 function QuestionCard({
+  bookId,
   question,
   index,
   lastPerf,
 }: {
+  bookId: string;
   question: Question;
   index: number;
   lastPerf?: Performance;
 }) {
   const [revealed, setRevealed] = useState(false);
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   const difficultyStyle = {
     hard: "bg-[#ba1a1a]/10 text-[#ba1a1a]",
@@ -43,11 +48,43 @@ function QuestionCard({
               <p className="text-[15px] text-[#1b1c1c] font-[500] leading-snug">
                 {question.text}
               </p>
-              <span
-                className={`text-[10px] font-[500] px-2 py-0.5 rounded-full shrink-0 ${difficultyStyle[question.difficulty]}`}
-              >
-                {difficultyLabel[question.difficulty]}
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span
+                  className={`text-[10px] font-[500] px-2 py-0.5 rounded-full ${difficultyStyle[question.difficulty]}`}
+                >
+                  {difficultyLabel[question.difficulty]}
+                </span>
+                <button
+                  disabled={isDeleting}
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "Tem certeza de que deseja excluir esta pergunta?",
+                      )
+                    ) {
+                      startDeleteTransition(async () => {
+                        await deleteQuestion(bookId, question.id);
+                      });
+                    }
+                  }}
+                  title="Excluir pergunta"
+                  className="text-[#74777d] hover:text-[#ba1a1a] p-1 transition-colors disabled:opacity-40"
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="mt-4">
@@ -119,9 +156,11 @@ interface NewQuestionForm {
 function AddQuestionForm({
   onSave,
   onCancel,
+  isPending = false,
 }: {
   onSave: (q: NewQuestionForm) => void;
   onCancel: () => void;
+  isPending?: boolean;
 }) {
   const [form, setForm] = useState<NewQuestionForm>({
     text: "",
@@ -193,15 +232,19 @@ function AddQuestionForm({
       <div className="flex gap-3 pt-1">
         <button
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors"
+          disabled={isPending}
+          className="flex-1 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors disabled:opacity-40"
         >
           Cancelar
         </button>
         <button
-          disabled={!canSave}
+          disabled={!canSave || isPending}
           onClick={() => onSave(form)}
-          className="flex-1 py-2.5 rounded-lg bg-[#1a2e44] text-white text-sm font-[600] hover:bg-[#2d4460] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex-1 py-2.5 rounded-lg bg-[#1a2e44] text-white text-sm font-[600] hover:bg-[#2d4460] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
+          {isPending && (
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
           Salvar pergunta
         </button>
       </div>
@@ -216,7 +259,10 @@ export function ChapterDetail({
   book: Book;
   chapter: Chapter;
 }) {
+  const router = useRouter();
   const [addingQuestion, setAddingQuestion] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [confirmDeleteChapter, setConfirmDeleteChapter] = useState(false);
   const hasQ = chapter.questions.length > 0;
   const prevChapter = book.chapters.find(
     (c) => c.number === chapter.number - 1,
@@ -226,16 +272,22 @@ export function ChapterDetail({
   );
 
   const handleSaveQuestion = (form: NewQuestionForm) => {
-    createQuestion(book.id, chapter.id, form);
-    setAddingQuestion(false);
+    startTransition(async () => {
+      const res = await createQuestion(book.id, chapter.id, form);
+      if (res.success) {
+        setAddingQuestion(false);
+      } else {
+        alert(res.error || "Erro ao criar pergunta");
+      }
+    });
   };
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
-      {/* Header */}
+      {}
       <div className="bg-white border-b border-[#e4e2e2]">
         <div className="max-w-3xl mx-auto px-8 py-8">
-          {/* Breadcrumb */}
+          {}
           <div className="flex items-center gap-2 text-xs font-[500] text-[#74777d] mb-6">
             <Link
               href="/biblioteca"
@@ -290,37 +342,60 @@ export function ChapterDetail({
               )}
             </div>
 
-            {hasQ && (
+            <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() =>
-                  startSessionAction(book.id, {
-                    mode: "direct",
-                    chapterId: chapter.id,
-                  })
-                }
-                className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
+                onClick={() => setConfirmDeleteChapter(true)}
+                disabled={isPending}
+                className="flex items-center gap-1.5 px-3 py-2 border border-[#ba1a1a]/30 text-[#ba1a1a] text-xs font-[500] rounded-lg hover:bg-[#ba1a1a]/5 transition-colors disabled:opacity-40"
               >
                 <svg
-                  width="14"
-                  height="14"
+                  width="13"
+                  height="13"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2"
+                  strokeWidth="1.75"
                   strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <polygon points="5 3 19 12 5 21 5 3" />
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
-                Revisar capítulo
+                Excluir
               </button>
-            )}
+
+              {hasQ && (
+                <button
+                  onClick={() =>
+                    startSessionAction(book.id, {
+                      mode: "direct",
+                      chapterId: chapter.id,
+                    })
+                  }
+                  className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  Revisar capítulo
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
+      {}
       <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
-        {/* Summary */}
+        {}
         {chapter.summary && (
           <div>
             <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest mb-3">
@@ -334,7 +409,7 @@ export function ChapterDetail({
           </div>
         )}
 
-        {/* Questions */}
+        {}
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest">
@@ -371,6 +446,7 @@ export function ChapterDetail({
               {chapter.questions.map((q, i) => (
                 <QuestionCard
                   key={q.id}
+                  bookId={book.id}
                   question={q}
                   index={i}
                   lastPerf={lastPerformance(q, book)}
@@ -439,7 +515,7 @@ export function ChapterDetail({
           )}
         </div>
 
-        {/* Chapter navigation */}
+        {}
         <div className="flex gap-3 pt-4 border-t border-[#e4e2e2]">
           {prevChapter && (
             <Link
@@ -469,6 +545,57 @@ export function ChapterDetail({
           )}
         </div>
       </div>
+
+      {}
+      {confirmDeleteChapter && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"
+            onClick={() => setConfirmDeleteChapter(false)}
+          />
+          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-paper-lg p-6 space-y-4">
+            <h3
+              style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
+              className="text-lg text-[#1b1c1c]"
+            >
+              Excluir capítulo?
+            </h3>
+            <p className="text-sm text-[#74777d] leading-relaxed">
+              Tem certeza de que deseja excluir o capítulo &ldquo;
+              {chapter.title}&rdquo;? Todas as perguntas deste capítulo também
+              serão excluídas.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                disabled={isPending}
+                onClick={() => setConfirmDeleteChapter(false)}
+                className="flex-1 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={isPending}
+                onClick={() => {
+                  startTransition(async () => {
+                    const res = await deleteChapter(book.id, chapter.id);
+                    if (res.success) {
+                      router.push(`/livros/${book.id}`);
+                    } else {
+                      alert(res.error || "Erro ao excluir capítulo");
+                    }
+                  });
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-[#ba1a1a] text-white text-sm font-[600] hover:bg-[#ba1a1a]/90 transition-colors flex items-center justify-center gap-2"
+              >
+                {isPending && (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

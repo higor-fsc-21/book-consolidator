@@ -379,11 +379,11 @@ o cadastro de livros pela Google Books API.
 
 ### Critérios de conclusão
 
-- [ ] Login e logout funcionais; dados isolados por usuário.
-- [ ] Criar, editar e excluir livro/capítulo/pergunta persistem corretamente.
-- [ ] Operações compostas executam em transação.
-- [ ] Adicionar livro busca corretamente na Google Books API, com paginação.
-- [ ] Cache revalidado após cada mutação.
+- [x] Login e logout funcionais; dados isolados por usuário.
+- [x] Criar, editar e excluir livro/capítulo/pergunta persistem corretamente.
+- [x] Operações compostas executam em transação.
+- [x] Adicionar livro busca corretamente na Google Books API, com paginação.
+- [x] Cache revalidado após cada mutação.
 
 ### Riscos
 

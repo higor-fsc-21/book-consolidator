@@ -1,23 +1,12 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-const SESSION_COOKIE = "memora_session"
-
-export function middleware(request: NextRequest) {
-  const isAuthenticated = request.cookies.has(SESSION_COOKIE)
-  const isLoginPage = request.nextUrl.pathname.startsWith("/login")
-
-  if (!isAuthenticated && !isLoginPage) {
-    return NextResponse.redirect(new URL("/login", request.url))
-  }
-
-  if (isAuthenticated && isLoginPage) {
-    return NextResponse.redirect(new URL("/", request.url))
-  }
-
-  return NextResponse.next()
+export async function middleware(request: NextRequest) {
+  return await updateSession(request);
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
-}
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|auth/callback|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+};

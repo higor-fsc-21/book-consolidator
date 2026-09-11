@@ -60,6 +60,9 @@ de uma nova decisão (`D41`…), preservando o histórico.
 | [D43](#d43--postgres-local-em-docker--supabase)                     | Postgres local              | Docker local + Supabase                            |
 | [D44](#d44--escopo-de-escrita-da-fase-3)                            | Escopo de escrita da Fase 3 | Mutações via Prisma já na Fase 3                   |
 | [D45](#d45--forma-dos-tipos-de-domínio)                             | Tipos de domínio            | Espelham o schema do Prisma                        |
+| [D46](#d46--provisionamento-jit-por-authuserid)                     | Autenticação e Usuário      | Provisionamento JIT por `authUserId` apenas        |
+| [D47](#d47--reconciliação-do-seed-com-supabase-auth)                | Seed e Usuário de Teste     | `SEED_USER_AUTH_ID` obrigatório no seed            |
+| [D48](#d48--padronização-de-retorno-de-server-actions)              | Server Actions              | Formato tipado `ActionResult` com fieldErrors      |
 
 ---
 
@@ -832,3 +835,62 @@ SessionAttempt[]` aninhados; a UI consome uma projeção derivada
   exibição a partir de `sessions`/`attempts`.
 - `Question.lastPerformance` deixa de ser persistido; vira `lastPerformance(question, book)`,
   calculado a partir da tentativa mais recente.
+
+---
+
+## D46 — Provisionamento JIT por `authUserId`
+
+**Contexto:** na Fase 4, a autenticação passa a ser feita via Supabase Auth (Google OAuth).
+É necessário conectar a identidade externa do Supabase com o registro `User` no Postgres local.
+
+**Alternativas:** adoção por e-mail preexistente · provisionamento JIT por `authUserId` apenas.
+
+**Decisão:** **provisionamento JIT por `authUserId` apenas**.
+
+**Motivo:** simplicidade e segurança contra impersonação ou colisão de contas; não há tentativa
+de associar contas por e-mail sem vínculo de autenticação estabelecido.
+
+**Implicações:**
+
+- `getCurrentUser()` consulta `db.user.findFirst({ where: { authUserId: authUser.id, deletedAt: null } })`.
+- Se não encontrar, insere um novo `User` associando `authUserId`, `email` e `name` (extraído dos
+  metadados do provedor Google).
+
+---
+
+## D47 — Reconciliação do seed com Supabase Auth
+
+**Contexto:** o seed (`prisma/seed.ts`) popula 9 livros de demonstração. Com a autenticação real
+ativa, o usuário autenticado no navegador precisa ser dono desses livros.
+
+**Alternativas:** manter usuário fictício desacoplado · vincular o seed ao ID de autenticação real.
+
+**Decisão:** **`SEED_USER_AUTH_ID` obrigatório no seed**.
+
+**Motivo:** permite que o desenvolvedor crie uma conta no Supabase Auth via Google OAuth e, em
+seguida, execute `pnpm db:seed` para receber imediatamente todo o acervo inicial de livros e
+histórico de consolidação.
+
+**Implicações:**
+
+- O arquivo `prisma/seed.ts` valida a presença de `SEED_USER_AUTH_ID` e popula o campo `authUserId`.
+- Documentado em `.env.example`.
+
+---
+
+## D48 — Padronização de retorno de Server Actions
+
+**Contexto:** na Fase 3, as actions lançavam erros ou não retornavam dados de validação. Na Fase
+4, validações Zod e operações de exclusão precisam fornecer feedback ao cliente.
+
+**Alternativas:** exceções não capturadas · tuplas `[error, data]` · união discriminada `ActionResult`.
+
+**Decisão:** **união discriminada `ActionResult<T>` com `fieldErrors`**.
+
+**Motivo:** padrão idiomático do Next.js App Router para consumo por `useTransition` e formulários
+reativos com mensagens de erro inline amigáveis.
+
+**Implicações:**
+
+- Todas as Server Actions em `src/app/actions/*.ts` retornam `ActionResult` em caso de erro de
+  validação Zod ou falha de operação.

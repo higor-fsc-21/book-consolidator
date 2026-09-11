@@ -1,23 +1,34 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-
-const SESSION_COOKIE = "memora_session";
+import { createClient } from "@/lib/supabase/server";
 
 export async function login() {
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, "placeholder", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
+  const supabase = await createClient();
+  const headersList = await headers();
+  const host = headersList.get("host") || "localhost:8443";
+  const protocol =
+    headersList.get("x-forwarded-proto") ||
+    (host.startsWith("localhost") ? "http" : "https");
+  const origin = `${protocol}://${host}`;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+    },
   });
-  redirect("/");
+
+  if (error || !data.url) {
+    throw new Error(error?.message || "Could not authenticate with Google");
+  }
+
+  redirect(data.url);
 }
 
 export async function logout() {
-  const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
+  const supabase = await createClient();
+  await supabase.auth.signOut();
   redirect("/login");
 }

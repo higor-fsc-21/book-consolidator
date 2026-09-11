@@ -10,6 +10,11 @@ if (!seedUserEmail) {
   throw new Error("SEED_USER_EMAIL must be set (see .env.example)");
 }
 
+const seedUserAuthId = process.env.SEED_USER_AUTH_ID;
+if (!seedUserAuthId) {
+  throw new Error("SEED_USER_AUTH_ID must be set (see .env.example)");
+}
+
 function toUtcMidnight(dateStr: string): Date {
   return new Date(`${dateStr}T00:00:00.000Z`);
 }
@@ -21,10 +26,18 @@ async function main() {
   await prisma.question.deleteMany();
   await prisma.chapter.deleteMany();
   await prisma.book.deleteMany();
-  await prisma.user.deleteMany({ where: { email: seedUserEmail } });
+  await prisma.user.deleteMany({
+    where: {
+      OR: [{ email: seedUserEmail }, { authUserId: seedUserAuthId }],
+    },
+  });
 
   const user = await prisma.user.create({
-    data: { name: "Rafael", email: seedUserEmail },
+    data: {
+      name: "Rafael",
+      email: seedUserEmail,
+      authUserId: seedUserAuthId,
+    },
   });
 
   for (const book of MOCK_BOOKS) {

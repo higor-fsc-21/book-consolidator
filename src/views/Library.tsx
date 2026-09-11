@@ -1,7 +1,8 @@
-"use client";
+"use client"; /* Header */ /* Search + filter row */ /* Search */ /* Filters toggle */ /* Sort */ /* Sort direction */ /* Extended filter panel */ /* Status tabs */ /* Grid */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type {
   Book,
   ReadingStatus,
@@ -13,7 +14,29 @@ import { avgScore, coverGradient } from "@/domain/derived";
 import { createBook } from "@/app/actions/books";
 import { BookModal } from "@/components/BookModal";
 
-function BookCover({ gradient }: { gradient: [string, string] }) {
+function BookCover({
+  coverUrl,
+  title,
+  gradient,
+}: {
+  coverUrl?: string | null;
+  title: string;
+  gradient: [string, string];
+}) {
+  if (coverUrl) {
+    return (
+      <div className="relative w-12 h-16 rounded-[5px] shrink-0 overflow-hidden shadow-[2px_3px_10px_rgba(0,0,0,0.2)] bg-[#e4e2e2]">
+        <Image
+          src={coverUrl}
+          alt={title}
+          fill
+          className="object-cover"
+          sizes="48px"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="w-12 h-16 rounded-[5px] shrink-0"
@@ -87,7 +110,11 @@ function BookCard({ book }: { book: Book }) {
       className="group w-full bg-white rounded-xl p-5 shadow-paper hover:shadow-paper-lg transition-shadow text-left block"
     >
       <div className="flex gap-4">
-        <BookCover gradient={coverGradient(book.id)} />
+        <BookCover
+          coverUrl={book.coverUrl}
+          title={book.title}
+          gradient={coverGradient(book.id)}
+        />
 
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-start justify-between gap-2">
@@ -174,6 +201,8 @@ const consolidationOrder: Record<ConsolidationState, number> = {
 
 export function Library({ books }: { books: Book[] }) {
   const [addOpen, setAddOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReadingStatus | "all">(
     "all",
@@ -250,7 +279,7 @@ export function Library({ books }: { books: Book[] }) {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      {/* Header */}
+      {}
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1
@@ -284,9 +313,9 @@ export function Library({ books }: { books: Book[] }) {
         </button>
       </div>
 
-      {/* Search + filter row */}
+      {}
       <div className="flex gap-3 mb-4">
-        {/* Search */}
+        {}
         <div className="relative flex-1">
           <svg
             className="absolute left-3 top-1/2 -translate-y-1/2 text-[#74777d]"
@@ -309,7 +338,7 @@ export function Library({ books }: { books: Book[] }) {
           />
         </div>
 
-        {/* Filters toggle */}
+        {}
         <button
           onClick={() => setFiltersOpen((o) => !o)}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-[500] border transition-all ${
@@ -334,7 +363,7 @@ export function Library({ books }: { books: Book[] }) {
           Filtros{hasActiveFilters && " •"}
         </button>
 
-        {/* Sort */}
+        {}
         <div className="relative">
           <select
             className="appearance-none px-4 py-2.5 pr-8 rounded-lg text-sm font-[500] text-[#43474d] bg-white border border-[#e4e2e2] hover:border-[#1a2e44]/40 outline-none cursor-pointer shadow-paper-sm"
@@ -361,7 +390,7 @@ export function Library({ books }: { books: Book[] }) {
           </svg>
         </div>
 
-        {/* Sort direction */}
+        {}
         <button
           onClick={() => setSortAsc((a) => !a)}
           className="p-2.5 bg-white border border-[#e4e2e2] rounded-lg text-[#74777d] hover:text-[#1b1c1c] hover:border-[#1a2e44]/40 transition-colors shadow-paper-sm"
@@ -397,7 +426,7 @@ export function Library({ books }: { books: Book[] }) {
         </button>
       </div>
 
-      {/* Extended filter panel */}
+      {}
       {filtersOpen && (
         <div className="bg-white rounded-xl p-5 shadow-paper border border-[#e4e2e2] mb-4 grid grid-cols-2 gap-5">
           <div>
@@ -481,7 +510,7 @@ export function Library({ books }: { books: Book[] }) {
         </div>
       )}
 
-      {/* Status tabs */}
+      {}
       <div className="flex gap-1 border-b border-[#e4e2e2] mb-6">
         {statusTabs.map((tab) => {
           const count =
@@ -506,7 +535,7 @@ export function Library({ books }: { books: Book[] }) {
         })}
       </div>
 
-      {/* Grid */}
+      {}
       {filtered.length === 0 ? (
         <div className="py-24 text-center text-[#74777d]">
           Nenhum livro encontrado com esses filtros.
@@ -540,10 +569,22 @@ export function Library({ books }: { books: Book[] }) {
 
       {addOpen && (
         <BookModal
-          onClose={() => setAddOpen(false)}
-          onSave={async (data) => {
-            await createBook(data as Parameters<typeof createBook>[0]);
+          onClose={() => {
             setAddOpen(false);
+            setErrorMessage(null);
+          }}
+          isPending={isPending}
+          errorMessage={errorMessage}
+          onSave={async (data) => {
+            setErrorMessage(null);
+            startTransition(async () => {
+              const res = await createBook(data);
+              if (res.success) {
+                setAddOpen(false);
+              } else {
+                setErrorMessage(res.error || "Erro ao salvar livro");
+              }
+            });
           }}
         />
       )}

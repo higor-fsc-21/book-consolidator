@@ -1,4 +1,4 @@
-"use client";
+"use client"; /* Brand */ /* Navigation */ /* User */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -46,14 +46,23 @@ const navItems = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  user?: {
+    name: string;
+    email: string;
+  };
+}
+
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const inLibrary =
     pathname === "/biblioteca" || pathname.startsWith("/livros");
 
+  const displayName = user?.name || PLACEHOLDER_USER.name;
+
   return (
     <aside className="w-[220px] shrink-0 flex flex-col h-full border-r border-[#e4e2e2] bg-[#f5f3f3]">
-      {/* Brand */}
+      {}
       <div className="px-5 py-6 border-b border-[#e4e2e2]">
         <div className="flex items-center gap-2.5">
           <div
@@ -80,7 +89,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation */}
+      {}
       <nav className="flex-1 p-3 space-y-0.5">
         {navItems.map(({ href, label, icon }) => {
           const active = href === "/" ? pathname === "/" : inLibrary;
@@ -101,18 +110,18 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* User */}
+      {}
       <div className="p-4 border-t border-[#e4e2e2]">
         <div className="flex items-center gap-3">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[13px] font-[600] shrink-0"
             style={{ background: "linear-gradient(135deg, #1a2e44, #2d4460)" }}
           >
-            {PLACEHOLDER_USER.name.charAt(0)}
+            {displayName.charAt(0)}
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-[600] text-[#1b1c1c] truncate">
-              {PLACEHOLDER_USER.name}
+              {displayName}
             </div>
             <div className="text-[11px] text-[#74777d] mt-0.5">
               🔥 {PLACEHOLDER_USER.streak} dias seguidos

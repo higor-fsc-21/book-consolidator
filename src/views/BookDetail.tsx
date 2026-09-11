@@ -1,7 +1,8 @@
-"use client";
+"use client"; /* Hero header */ /* Back */ /* Meta */ /* Progress */ /* Stats */ /* Actions */ /* Tabs */ /* Tab content */ /* Chapters */ /* Summary */ /* Revisions */ /* Bar chart */ /* Revision list */ /* Delete Confirmation Modal */
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Book } from "@/domain/types";
 import {
@@ -16,12 +17,38 @@ import {
   revisionRecords,
   type RevisionRecord,
 } from "@/domain/derived";
-import { updateBook, startReading } from "@/app/actions/books";
-import { createChapter, toggleChapterRead } from "@/app/actions/chapters";
+import { updateBook, startReading, deleteBook } from "@/app/actions/books";
+import {
+  createChapter,
+  toggleChapterRead,
+  deleteChapter,
+} from "@/app/actions/chapters";
 import { startSessionAction } from "@/app/actions/sessions";
 import { BookModal } from "@/components/BookModal";
 
-function BookCover({ gradient }: { gradient: [string, string] }) {
+function BookCover({
+  coverUrl,
+  title,
+  gradient,
+}: {
+  coverUrl?: string | null;
+  title: string;
+  gradient: [string, string];
+}) {
+  if (coverUrl) {
+    return (
+      <div className="relative w-20 h-28 rounded-[6px] shrink-0 overflow-hidden shadow-[4px_6px_20px_rgba(0,0,0,0.25)] bg-[#e4e2e2]">
+        <Image
+          src={coverUrl}
+          alt={title}
+          fill
+          className="object-cover"
+          sizes="80px"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="w-20 h-28 rounded-[6px] shrink-0"
@@ -107,9 +134,11 @@ interface NewChapterForm {
 function AddChapterForm({
   onSave,
   onCancel,
+  isPending = false,
 }: {
   onSave: (data: { title: string; description?: string }) => void;
   onCancel: () => void;
+  isPending?: boolean;
 }) {
   const [form, setForm] = useState<NewChapterForm>({
     title: "",
@@ -154,20 +183,24 @@ function AddChapterForm({
       <div className="flex gap-3 pt-1">
         <button
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors"
+          disabled={isPending}
+          className="flex-1 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors disabled:opacity-40"
         >
           Cancelar
         </button>
         <button
-          disabled={!canSave}
+          disabled={!canSave || isPending}
           onClick={() =>
             onSave({
               title: form.title,
               description: form.description.trim() || undefined,
             })
           }
-          className="flex-1 py-2.5 rounded-lg bg-[#1a2e44] text-white text-sm font-[600] hover:bg-[#2d4460] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex-1 py-2.5 rounded-lg bg-[#1a2e44] text-white text-sm font-[600] hover:bg-[#2d4460] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
+          {isPending && (
+            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
           Salvar capítulo
         </button>
       </div>
@@ -197,6 +230,9 @@ export function BookDetail({ book }: { book: Book }) {
   const [summaryDraft, setSummaryDraft] = useState(book.summary ?? "");
   const [addingChapter, setAddingChapter] = useState(false);
   const [editBookOpen, setEditBookOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const readChapters = book.chapters.filter((c) => c.isRead).length;
   const chaptersWithQuestions = book.chapters.filter(
@@ -221,10 +257,10 @@ export function BookDetail({ book }: { book: Book }) {
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
-      {/* Hero header */}
+      {}
       <div className="bg-white border-b border-[#e4e2e2]">
         <div className="max-w-4xl mx-auto px-8 py-8">
-          {/* Back */}
+          {}
           <Link
             href="/biblioteca"
             className="flex items-center gap-2 text-[#74777d] hover:text-[#1b1c1c] text-xs font-[500] mb-6 transition-colors"
@@ -245,7 +281,11 @@ export function BookDetail({ book }: { book: Book }) {
           </Link>
 
           <div className="flex gap-8 items-start">
-            <BookCover gradient={coverGradient(book.id)} />
+            <BookCover
+              coverUrl={book.coverUrl}
+              title={book.title}
+              gradient={coverGradient(book.id)}
+            />
 
             <div className="flex-1 min-w-0">
               <h1
@@ -256,7 +296,7 @@ export function BookDetail({ book }: { book: Book }) {
               </h1>
               <div className="text-[#74777d] mt-1">{book.author}</div>
 
-              {/* Meta */}
+              {}
               <div className="flex items-center gap-2.5 flex-wrap mt-4">
                 <span
                   className={`text-[11px] font-[500] px-2.5 py-1 rounded-full ${
@@ -294,7 +334,7 @@ export function BookDetail({ book }: { book: Book }) {
                 )}
               </div>
 
-              {/* Progress */}
+              {}
               {book.status === "reading" && (
                 <div className="mt-5 max-w-sm">
                   <div className="flex justify-between text-xs font-mono text-[#74777d] mb-1.5">
@@ -314,7 +354,7 @@ export function BookDetail({ book }: { book: Book }) {
                 </div>
               )}
 
-              {/* Stats */}
+              {}
               <div className="mt-5 flex gap-6 text-xs font-mono">
                 {totalQuestions > 0 && (
                   <div>
@@ -359,12 +399,17 @@ export function BookDetail({ book }: { book: Book }) {
               </div>
             </div>
 
-            {/* Actions */}
+            {}
             <div className="shrink-0 flex flex-col gap-2">
               {(book.status === "want" || book.status === "paused") && (
                 <button
-                  onClick={() => startReading(book.id)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
+                  onClick={() => {
+                    startTransition(async () => {
+                      await startReading(book.id);
+                    });
+                  }}
+                  disabled={isPending}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors disabled:opacity-50"
                 >
                   <svg
                     width="14"
@@ -402,6 +447,26 @@ export function BookDetail({ book }: { book: Book }) {
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
                 Editar livro
+              </button>
+
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-2 px-4 py-2.5 border border-[#ba1a1a]/30 text-[#ba1a1a] text-sm font-[500] rounded-lg hover:bg-[#ba1a1a]/5 transition-colors"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                Excluir livro
               </button>
 
               {chaptersWithQuestions.length > 0 && (
@@ -471,7 +536,7 @@ export function BookDetail({ book }: { book: Book }) {
           </div>
         </div>
 
-        {/* Tabs */}
+        {}
         <div className="max-w-4xl mx-auto px-8">
           <div className="flex gap-1 border-b border-[#e4e2e2] -mb-px">
             {(
@@ -502,9 +567,9 @@ export function BookDetail({ book }: { book: Book }) {
         </div>
       </div>
 
-      {/* Tab content */}
+      {}
       <div className="max-w-4xl mx-auto px-8 py-8">
-        {/* Chapters */}
+        {}
         {activeTab === "chapters" && (
           <div className="space-y-2">
             {book.chapters.map((chapter) => {
@@ -518,7 +583,12 @@ export function BookDetail({ book }: { book: Book }) {
                 >
                   <div className="w-full px-5 py-4 flex items-center gap-4 hover:bg-[#f9f7f4] transition-colors">
                     <button
-                      onClick={() => toggleChapterRead(book.id, chapter.id)}
+                      onClick={() => {
+                        startTransition(async () => {
+                          await toggleChapterRead(book.id, chapter.id);
+                        });
+                      }}
+                      disabled={isPending}
                       title={
                         chapter.isRead
                           ? "Marcar como não lido"
@@ -529,7 +599,7 @@ export function BookDetail({ book }: { book: Book }) {
                           ? "Marcar como não lido"
                           : "Marcar como lido"
                       }
-                      className={`w-5 h-5 rounded-full border shrink-0 flex items-center justify-center transition-colors ${
+                      className={`w-5 h-5 rounded-full border shrink-0 flex items-center justify-center transition-colors disabled:opacity-50 ${
                         chapter.isRead
                           ? hasQ
                             ? "bg-[#1a2e44] border-[#1a2e44]"
@@ -725,9 +795,16 @@ export function BookDetail({ book }: { book: Book }) {
 
             {addingChapter && (
               <AddChapterForm
+                isPending={isPending}
                 onSave={(data) => {
-                  createChapter(book.id, data);
-                  setAddingChapter(false);
+                  startTransition(async () => {
+                    const res = await createChapter(book.id, data);
+                    if (res.success) {
+                      setAddingChapter(false);
+                    } else {
+                      alert(res.error || "Erro ao adicionar capítulo");
+                    }
+                  });
                 }}
                 onCancel={() => setAddingChapter(false)}
               />
@@ -756,7 +833,7 @@ export function BookDetail({ book }: { book: Book }) {
           </div>
         )}
 
-        {/* Summary */}
+        {}
         {activeTab === "summary" && (
           <div>
             {editingSummary ? (
@@ -866,12 +943,12 @@ export function BookDetail({ book }: { book: Book }) {
           </div>
         )}
 
-        {/* Revisions */}
+        {}
         {activeTab === "revisions" && (
           <div>
             {revisions.length > 0 ? (
               <>
-                {/* Bar chart */}
+                {}
                 <div className="bg-white rounded-xl p-6 shadow-paper border border-[#e4e2e2] mb-6">
                   <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest mb-4">
                     Evolução do desempenho
@@ -935,7 +1012,7 @@ export function BookDetail({ book }: { book: Book }) {
                     })()}
                 </div>
 
-                {/* Revision list */}
+                {}
                 <div className="bg-white rounded-xl p-5 shadow-paper border border-[#e4e2e2]">
                   {revisions.map((r, i) => (
                     <RevisionRow key={r.id} revision={r} index={i} />
@@ -970,12 +1047,74 @@ export function BookDetail({ book }: { book: Book }) {
       {editBookOpen && (
         <BookModal
           editBook={book}
-          onClose={() => setEditBookOpen(false)}
-          onSave={async (data) => {
-            await updateBook(book.id, data);
+          isPending={isPending}
+          errorMessage={errorMessage}
+          onClose={() => {
             setEditBookOpen(false);
+            setErrorMessage(null);
+          }}
+          onSave={async (data) => {
+            setErrorMessage(null);
+            startTransition(async () => {
+              const res = await updateBook(book.id, data);
+              if (res.success) {
+                setEditBookOpen(false);
+              } else {
+                setErrorMessage(res.error || "Erro ao salvar alterações");
+              }
+            });
           }}
         />
+      )}
+
+      {}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"
+            onClick={() => setConfirmDelete(false)}
+          />
+          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-paper-lg p-6 space-y-4">
+            <h3
+              style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
+              className="text-lg text-[#1b1c1c]"
+            >
+              Excluir livro?
+            </h3>
+            <p className="text-sm text-[#74777d] leading-relaxed">
+              Tem certeza de que deseja excluir &ldquo;{book.title}&rdquo;? O
+              livro será removido da sua biblioteca.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                disabled={isPending}
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={isPending}
+                onClick={() => {
+                  startTransition(async () => {
+                    const res = await deleteBook(book.id);
+                    if (res.success) {
+                      router.push("/biblioteca");
+                    } else {
+                      alert(res.error || "Erro ao excluir livro");
+                    }
+                  });
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-[#ba1a1a] text-white text-sm font-[600] hover:bg-[#ba1a1a]/90 transition-colors flex items-center justify-center gap-2"
+              >
+                {isPending && (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
