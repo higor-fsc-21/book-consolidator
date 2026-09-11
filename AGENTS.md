@@ -31,12 +31,13 @@ The core philosophy is grounded in `docs/knowledge-consolidation-app.md`: "Do no
 - Routes: `/` (Dashboard), `/biblioteca` (Library), `/livros/[bookId]` (BookDetail, tab state in `?tab=`), `/livros/[bookId]/capitulos/[chapterId]` (ChapterDetail), `/sessoes/[sessionId]` (MemorizationSession), `/login`.
 - `src/middleware.ts` gates all `(app)` routes behind a `memora_session` cookie, redirecting to `/login` when absent.
 
-### Data & Mutations (no database yet)
+### Data & Mutations (Prisma-backed)
 
-- Domain types/logic live in `src/domain/` (`types.ts`, `constants.ts`, `prompts.ts`, `derived.ts`, `ids.ts`, `mock.ts`, `services/*.ts`). These are pure, framework-agnostic functions operating on arrays.
-- `src/domain/store.ts` holds a `globalThis`-pinned mutable `{ books, sessions }` singleton (seeded from `MOCK_BOOKS`), guarded by `import "server-only"`. This is a **temporary seam** — a later phase swaps it for Prisma-backed queries (see `docs/MIGRATION-PHASES.md`).
-- All mutations go through Server Actions in `src/app/actions/*.ts` (`"use server"`), which call the pure `src/domain/services/*` functions, reassign the store, and `revalidatePath(...)` the affected routes.
-- Starting a session (`startSessionAction`) creates a `RevisionSession` and redirects to `/sessoes/[sessionId]`; completing one (`completeSessionAction`) persists a `RevisionRecord` onto the book and removes the pending session.
+- Domain types/logic live in `src/domain/` (`types.ts`, `constants.ts`, `prompts.ts`, `derived.ts`, `services/*.ts`). `src/domain/types.ts` mirrors `prisma/schema.prisma` field-for-field (`Date | null`, `sessions`/`attempts` instead of a `revisions` array); `src/domain/derived.ts` projects that shape back into UI view-models (`revisionRecords(book)`, `lastPerformance(question, book)`, `coverGradient(bookId)`).
+- `src/domain/queries/` (`books.ts`, `sessions.ts`, `shared.ts`) holds the read layer: `getBooksForUser`, `getBookWithEverything`, `getChapterWithQuestions`, `getSessionForUser`. Every query filters by `userId` + `deletedAt: null`, loads the whole book in one round trip, and is wrapped in `unstable_cache` tagged via `src/lib/cache-tags.ts`.
+- `src/lib/db.ts` holds the `PrismaClient` singleton (guarded by `import "server-only"`, pinned on `globalThis` for HMR). `src/lib/auth.ts` exposes `getCurrentUser()`, which currently resolves the single dev user by `SEED_USER_EMAIL` — the only seam a future auth phase needs to replace.
+- All mutations go through Server Actions in `src/app/actions/*.ts` (`"use server"`), which call the pure-ish `src/domain/services/*` functions (thin Prisma wrappers), then call `revalidateTag(...)` (via `src/lib/cache-tags.ts`) and `revalidatePath(...)` for the affected routes. There is no Zod validation or real per-request authorization yet — only `userId` ownership checks.
+- Starting a session (`startSessionAction`) creates a `RevisionSession` row (`completedAt: null`) and redirects to `/sessoes/[sessionId]`; completing one (`completeSessionAction`) inserts `SessionAttempt` rows and sets `score`/`completedAt` on the session, then updates `Book.lastRevision`.
 
 ## Project Structure
 
@@ -47,7 +48,9 @@ Start with task-relevant files below:
 - `src/app/(app)/layout.tsx` - Protected shell rendering `Sidebar` + `{children}`
 - `src/app/(app)/**/page.tsx` - Route pages; Server Components that read `src/domain/store.ts` and pass plain props into the view components
 - `src/app/actions/{books,chapters,questions,sessions}.ts` - Server Actions (mutations)
-- `src/domain/` - Types, constants, prompt templates, derived selectors, id generation, mock data, and `services/*` (pure array-transforming functions), plus the mutable `store.ts`
+- `src/domain/` - Types (mirroring `prisma/schema.prisma`), constants, prompt templates, derived view-model selectors, and `services/*` (thin Prisma-backed mutation functions)
+- `src/domain/queries/` - Read layer: `getBooksForUser`, `getBookWithEverything`, `getChapterWithQuestions`, `getSessionForUser`, all cached via `unstable_cache` + tags
+- `src/lib/db.ts` - `PrismaClient` singleton; `src/lib/auth.ts` - `getCurrentUser()` (dev-user seam); `src/lib/cache-tags.ts` - cache tag builders
 - `src/views/` - Page-level view components (mostly client components):
   - `Dashboard.tsx` - Today's consolidation sessions, quick actions, recent activity
   - `Library.tsx` - Book collection, status filtering, and addition modal trigger
@@ -90,7 +93,8 @@ Fonts (Libre Caslon Text, Hanken Grotesk, JetBrains Mono) are loaded via `next/f
 ## Lessons Learned & Gotchas
 
 - **No React Router**: Do not introduce `react-router-dom`; navigate with `<Link href="...">` / `useRouter()`. There is no `NavState`/`onNavigate` anymore.
-- **Store, not Context**: Books/chapters/questions/sessions live in the server-side `src/domain/store.ts` singleton, mutated only through Server Actions. New entities are created with `newId()` (`crypto.randomUUID()`) from `src/domain/ids.ts`.
+- **No in-memory store**: `src/domain/store.ts` and `src/domain/mock.ts` were removed in the Prisma migration. Books/chapters/questions/sessions live in Postgres, read through `src/domain/queries/*` and mutated only through Server Actions calling `src/domain/services/*`. New entities get DB-generated UUIDs (no more client-side `newId()`).
 - **Server Actions can be called directly from Client Components** (not just via `<form action={...}>`) — e.g. `onClick={() => startSessionAction(bookId)}`. If the action calls `redirect()`, Next.js handles client navigation automatically.
-- **`RevisionSession.mode` is optional**: session creation doesn't require a mode up front; `MemorizationSession` lets the user pick a mode client-side when none was set at creation time.
+- **`RevisionSession.mode` is optional**: session creation doesn't require a mode up front; `MemorizationSession` lets the user pick a mode client-side when none was set at creation time. A pending (not yet completed) session has `completedAt: null`, `score: null`.
+- **Domain types mirror Prisma, not the UI**: `Book.sessions` holds raw `RevisionSession[]` with nested `attempts`. Views consume the derived `revisionRecords(book)` / `lastPerformance(question, book)` / `coverGradient(bookId)` helpers from `src/domain/derived.ts` instead of reading persisted fields directly.
 - Some original inline object type annotations (pre-Next.js) were missing separators (e.g. `{ book: Book onClick: () => void }`) and never actually type-checked under Vite/esbuild. Watch for this pattern if more legacy code surfaces; `tsc --noEmit` now catches it.

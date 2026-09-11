@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { PrismaClient, type Prisma } from "@prisma/client";
 
-import { MOCK_BOOKS } from "../src/domain/mock";
+import { MOCK_BOOKS } from "./seed-data";
 
 const prisma = new PrismaClient();
 
@@ -96,22 +96,40 @@ async function main() {
         },
       });
 
-      // Only the latest session gets synthesized attempts (question.lastPerformance has no history).
-      if (revision.id !== latestRevision?.id) continue;
-
-      const attempts: Prisma.SessionAttemptCreateManyInput[] = [];
-      for (const chapter of book.chapters) {
-        for (const question of chapter.questions) {
-          if (!question.lastPerformance) continue;
-          const questionId = questionIdByMockId.get(question.id);
-          if (!questionId) continue;
-          attempts.push({
-            sessionId: createdSession.id,
-            questionId,
-            performance: question.lastPerformance,
-          });
+      // Only the latest session ties attempts to real questions (question.lastPerformance
+      // has no history for earlier revisions); earlier sessions get synthetic untied
+      // attempts that reproduce the stored score so history charts aren't empty.
+      if (revision.id === latestRevision?.id) {
+        const attempts: Prisma.SessionAttemptCreateManyInput[] = [];
+        for (const chapter of book.chapters) {
+          for (const question of chapter.questions) {
+            if (!question.lastPerformance) continue;
+            const questionId = questionIdByMockId.get(question.id);
+            if (!questionId) continue;
+            attempts.push({
+              sessionId: createdSession.id,
+              questionId,
+              performance: question.lastPerformance,
+            });
+          }
         }
+        if (attempts.length > 0) {
+          await prisma.sessionAttempt.createMany({ data: attempts });
+        }
+        continue;
       }
+
+      const correctCount = Math.round(
+        (revision.score / 100) * revision.questionsCount,
+      );
+      const attempts: Prisma.SessionAttemptCreateManyInput[] = Array.from(
+        { length: revision.questionsCount },
+        (_, i) => ({
+          sessionId: createdSession.id,
+          questionId: null,
+          performance: i < correctCount ? "correct" : "wrong",
+        }),
+      );
       if (attempts.length > 0) {
         await prisma.sessionAttempt.createMany({ data: attempts });
       }

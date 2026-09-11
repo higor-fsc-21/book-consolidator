@@ -1,11 +1,61 @@
-import type { Book } from "./types";
+// Seed-only fixture data (pre-Prisma shape). Mapped into real rows by prisma/seed.ts.
+type SeedSessionMode = "direct" | "guided" | "recognition";
+type SeedPerformance = "correct" | "partial" | "wrong";
+type SeedDifficulty = "easy" | "medium" | "hard";
 
-export const MOCK_BOOKS: Book[] = [
+interface SeedQuestion {
+  id: string;
+  text: string;
+  answer: string;
+  difficulty: SeedDifficulty;
+  lastPerformance?: SeedPerformance;
+}
+
+interface SeedChapter {
+  id: string;
+  bookId: string;
+  number: number;
+  title: string;
+  description?: string;
+  summary?: string;
+  questions: SeedQuestion[];
+  isRead: boolean;
+}
+
+interface SeedRevision {
+  id: string;
+  date: string;
+  mode: SeedSessionMode;
+  score: number;
+  questionsCount: number;
+  difficultTopics: string[];
+}
+
+export interface SeedBook {
+  id: string;
+  title: string;
+  author: string;
+  status: "want" | "reading" | "completed" | "paused" | "archived";
+  importance: 1 | 2 | 3;
+  startDate?: string;
+  endDate?: string;
+  currentChapter?: number;
+  totalChapters: number;
+  consolidationState: "consolidating" | "consolidated" | "archived";
+  lastRevision?: string;
+  nextRevision?: string;
+  revisions: SeedRevision[];
+  chapters: SeedChapter[];
+  summary?: string;
+  pages?: number;
+  year?: number;
+}
+
+export const MOCK_BOOKS: SeedBook[] = [
   {
     id: "b1",
     title: "Comunicação Não-Violenta",
     author: "Marshall B. Rosenberg",
-    coverGradient: ["#2D1A4A", "#5A3680"],
     status: "reading",
     importance: 1,
     startDate: "2026-07-15",
@@ -227,7 +277,6 @@ export const MOCK_BOOKS: Book[] = [
     id: "b2",
     title: "Rápido e Devagar: Duas Formas de Pensar",
     author: "Daniel Kahneman",
-    coverGradient: ["#0E2A3A", "#1A5278"],
     status: "completed",
     importance: 1,
     startDate: "2026-04-02",
@@ -308,7 +357,6 @@ export const MOCK_BOOKS: Book[] = [
     id: "b3",
     title: "Hábitos Atômicos",
     author: "James Clear",
-    coverGradient: ["#0D2A1A", "#1A5235"],
     status: "completed",
     importance: 2,
     startDate: "2026-01-10",
@@ -382,7 +430,6 @@ export const MOCK_BOOKS: Book[] = [
     id: "b4",
     title: "Trabalho Profundo",
     author: "Cal Newport",
-    coverGradient: ["#2A1208", "#6B3015"],
     status: "completed",
     importance: 1,
     startDate: "2026-03-01",
@@ -447,7 +494,6 @@ export const MOCK_BOOKS: Book[] = [
     id: "b5",
     title: "O Poder do Hábito",
     author: "Charles Duhigg",
-    coverGradient: ["#1E1040", "#402070"],
     status: "paused",
     importance: 2,
     startDate: "2026-06-01",
@@ -482,7 +528,6 @@ export const MOCK_BOOKS: Book[] = [
     id: "b6",
     title: "Mindset: A Nova Psicologia do Sucesso",
     author: "Carol S. Dweck",
-    coverGradient: ["#0A1A2A", "#1A3A5A"],
     status: "want",
     importance: 2,
     totalChapters: 8,
@@ -496,7 +541,6 @@ export const MOCK_BOOKS: Book[] = [
     id: "b7",
     title: "O Homem em Busca de Sentido",
     author: "Viktor E. Frankl",
-    coverGradient: ["#2A1A0E", "#5A3820"],
     status: "want",
     importance: 1,
     totalChapters: 4,
@@ -510,7 +554,6 @@ export const MOCK_BOOKS: Book[] = [
     id: "b8",
     title: "Essencialismo",
     author: "Greg McKeown",
-    coverGradient: ["#2A2010", "#5A4A20"],
     status: "completed",
     importance: 2,
     startDate: "2025-10-05",
@@ -583,7 +626,6 @@ export const MOCK_BOOKS: Book[] = [
     id: "b9",
     title: "Os Sete Hábitos das Pessoas Altamente Eficazes",
     author: "Stephen R. Covey",
-    coverGradient: ["#181830", "#303060"],
     status: "completed",
     importance: 2,
     startDate: "2025-07-10",

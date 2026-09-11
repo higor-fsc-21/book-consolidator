@@ -7,9 +7,12 @@ import type {
   Importance,
   ConsolidationState,
 } from "@/domain/types";
-import { COVER_GRADIENTS, statusLabels } from "@/domain/constants";
+import { statusLabels } from "@/domain/constants";
 
-type BookFormData = Omit<Book, "id" | "revisions" | "chapters">;
+type BookFormData = Omit<
+  Book,
+  "id" | "userId" | "createdAt" | "updatedAt" | "chapters" | "sessions"
+>;
 
 const importanceLabels: Record<Importance, string> = {
   1: "Muito importante",
@@ -39,29 +42,29 @@ export function BookModal({
   const [form, setForm] = useState<BookFormData>({
     title: editBook?.title ?? "",
     author: editBook?.author ?? "",
-    year: editBook?.year,
-    pages: editBook?.pages,
+    year: editBook?.year ?? null,
+    pages: editBook?.pages ?? null,
     status: editBook?.status ?? "want",
     importance: editBook?.importance ?? 2,
     totalChapters: editBook?.totalChapters ?? 10,
-    currentChapter: editBook?.currentChapter,
-    startDate: editBook?.startDate,
-    endDate: editBook?.endDate,
-    coverGradient: editBook?.coverGradient ?? COVER_GRADIENTS[0],
+    currentChapter: editBook?.currentChapter ?? null,
+    startDate: editBook?.startDate ?? null,
+    endDate: editBook?.endDate ?? null,
     consolidationState: editBook?.consolidationState ?? "consolidating",
-    lastRevision: editBook?.lastRevision,
-    nextRevision: editBook?.nextRevision,
+    lastRevision: editBook?.lastRevision ?? null,
+    nextRevision: editBook?.nextRevision ?? null,
     summary: editBook?.summary ?? "",
+    coverUrl: editBook?.coverUrl ?? null,
+    googleBooksId: editBook?.googleBooksId ?? null,
   });
 
   const set = <K extends keyof BookFormData>(key: K, value: BookFormData[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const totalSteps = 3;
+  const totalSteps = 2;
 
   const canProceed = () => {
     if (step === 1) return form.title.trim() && form.author.trim();
-    if (step === 2) return form.totalChapters > 0;
     return true;
   };
 
@@ -89,7 +92,7 @@ export function BookModal({
               {isEdit ? "Editar livro" : "Adicionar livro"}
             </h2>
             <div className="flex gap-1.5 mt-2">
-              {[1, 2, 3].map((s) => (
+              {[1, 2].map((s) => (
                 <div
                   key={s}
                   className={`h-1 rounded-full transition-all ${
@@ -155,7 +158,7 @@ export function BookModal({
                     onChange={(e) =>
                       set(
                         "year",
-                        e.target.value ? Number(e.target.value) : undefined,
+                        e.target.value ? Number(e.target.value) : null,
                       )
                     }
                   />
@@ -169,7 +172,7 @@ export function BookModal({
                     onChange={(e) =>
                       set(
                         "pages",
-                        e.target.value ? Number(e.target.value) : undefined,
+                        e.target.value ? Number(e.target.value) : null,
                       )
                     }
                   />
@@ -261,7 +264,7 @@ export function BookModal({
                       onChange={(e) =>
                         set(
                           "currentChapter",
-                          e.target.value ? Number(e.target.value) : undefined,
+                          e.target.value ? Number(e.target.value) : null,
                         )
                       }
                     />
@@ -304,75 +307,6 @@ export function BookModal({
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-5">
-              <div className="text-xs text-[#74777d] font-[500] uppercase tracking-widest mb-1">
-                Capa do livro
-              </div>
-              <p className="text-xs text-[#74777d]">
-                Escolha um gradiente para representar a capa.
-              </p>
-
-              <div className="grid grid-cols-5 gap-3">
-                {COVER_GRADIENTS.map(([a, b], i) => (
-                  <button
-                    key={i}
-                    onClick={() => set("coverGradient", [a, b])}
-                    className="relative aspect-[2/3] rounded-lg overflow-hidden transition-all"
-                    style={{
-                      background: `linear-gradient(160deg, ${a}, ${b})`,
-                      outline:
-                        form.coverGradient[0] === a &&
-                        form.coverGradient[1] === b
-                          ? "3px solid #1a2e44"
-                          : "3px solid transparent",
-                      outlineOffset: "2px",
-                    }}
-                  >
-                    {form.coverGradient[0] === a &&
-                      form.coverGradient[1] === b && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="white"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        </div>
-                      )}
-                  </button>
-                ))}
-              </div>
-
-              {/* Preview */}
-              <div className="flex items-center gap-4 p-4 bg-[#f5f3f3] rounded-xl">
-                <div
-                  className="w-14 h-20 rounded-lg shrink-0"
-                  style={{
-                    background: `linear-gradient(160deg, ${form.coverGradient[0]}, ${form.coverGradient[1]})`,
-                    boxShadow: "4px 6px 16px rgba(0,0,0,0.25)",
-                  }}
-                />
-                <div>
-                  <div className="text-sm font-[600] text-[#1b1c1c] leading-tight">
-                    {form.title || "Título do livro"}
-                  </div>
-                  <div className="text-xs text-[#74777d] mt-0.5">
-                    {form.author || "Autor"}
-                  </div>
-                  <div className="text-xs text-[#74777d] mt-1">
-                    {statusLabels[form.status]}
-                  </div>
-                </div>
-              </div>
             </div>
           )}
         </div>

@@ -1,3 +1,4 @@
+// Mirrors prisma/schema.prisma so the domain layer maps 1:1 onto Prisma reads.
 export type ReadingStatus =
   | "want"
   | "reading"
@@ -12,10 +13,12 @@ export type Difficulty = "easy" | "medium" | "hard";
 
 export interface Question {
   id: string;
+  chapterId: string;
   text: string;
   answer: string;
-  lastPerformance?: Performance;
   difficulty: Difficulty;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Chapter {
@@ -23,46 +26,58 @@ export interface Chapter {
   bookId: string;
   number: number;
   title: string;
-  description?: string;
-  summary?: string;
-  questions: Question[];
+  description: string | null;
+  summary: string | null;
   isRead: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  questions: Question[];
 }
 
-export interface RevisionRecord {
+export interface SessionAttempt {
   id: string;
-  date: string;
-  mode: SessionMode;
-  score: number;
-  questionsCount: number;
-  difficultTopics: string[];
+  sessionId: string;
+  questionId: string | null;
+  performance: Performance;
+  userAnswer: string | null;
+  attemptedAt: Date;
+}
+
+// A pending (not yet completed) session has completedAt: null, score: null, mode: null.
+export interface RevisionSession {
+  id: string;
+  userId: string;
+  bookId: string;
+  chapterId: string | null;
+  mode: SessionMode | null;
+  score: number | null;
+  startedAt: Date;
+  completedAt: Date | null;
+  createdAt: Date;
+  attempts: SessionAttempt[];
 }
 
 export interface Book {
   id: string;
+  userId: string;
   title: string;
   author: string;
-  coverGradient: [string, string];
   status: ReadingStatus;
   importance: Importance;
-  startDate?: string;
-  endDate?: string;
-  currentChapter?: number;
+  startDate: Date | null;
+  endDate: Date | null;
+  currentChapter: number | null;
   totalChapters: number;
   consolidationState: ConsolidationState;
-  lastRevision?: string;
-  nextRevision?: string;
-  revisions: RevisionRecord[];
+  lastRevision: Date | null;
+  nextRevision: Date | null;
+  summary: string | null;
+  pages: number | null;
+  year: number | null;
+  coverUrl: string | null;
+  googleBooksId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
   chapters: Chapter[];
-  summary?: string;
-  pages?: number;
-  year?: number;
-}
-
-export interface RevisionSession {
-  id: string;
-  bookId: string;
-  chapterId?: string;
-  mode?: SessionMode;
-  createdAt: string;
+  sessions: RevisionSession[];
 }

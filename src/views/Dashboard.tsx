@@ -6,6 +6,7 @@ import {
   getCompletedBooks,
   getRecommendedBook,
   avgScore,
+  coverGradient,
   readingProgress,
   daysSince,
   timeline,
@@ -99,7 +100,7 @@ export function Dashboard({
               Lendo agora
             </div>
             <div className="flex gap-5 flex-1">
-              <BookCover gradient={readingBook.coverGradient} size="lg" />
+              <BookCover gradient={coverGradient(readingBook.id)} size="lg" />
               <div className="flex-1 min-w-0">
                 <h2
                   style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
@@ -166,7 +167,10 @@ export function Dashboard({
             </div>
 
             <div className="flex gap-4 flex-1">
-              <BookCover gradient={recommendedBook.coverGradient} size="lg" />
+              <BookCover
+                gradient={coverGradient(recommendedBook.id)}
+                size="lg"
+              />
               <div className="flex-1 min-w-0">
                 <h2
                   style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
@@ -325,7 +329,10 @@ export function Dashboard({
                       href={`/livros/${item.book.id}`}
                       className="flex-1 flex items-center gap-3 text-left hover:bg-[#f5f3f3] rounded-lg px-3 py-2 -mx-3 transition-colors group"
                     >
-                      <BookCover gradient={item.book.coverGradient} size="sm" />
+                      <BookCover
+                        gradient={coverGradient(item.book.id)}
+                        size="sm"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-[500] text-[#1b1c1c] truncate group-hover:text-[#1a2e44] transition-colors">
                           {item.book.title}

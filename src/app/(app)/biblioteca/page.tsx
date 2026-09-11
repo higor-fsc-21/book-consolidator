@@ -1,6 +1,10 @@
 import { Library } from "@/views/Library";
-import { store } from "@/domain/store";
+import { getCurrentUser } from "@/lib/auth";
+import { getBooksForUser } from "@/domain/queries/books";
 
-export default function LibraryPage() {
-  return <Library books={store.books} />;
+export default async function LibraryPage() {
+  const user = await getCurrentUser();
+  const books = await getBooksForUser(user.id);
+
+  return <Library books={books} />;
 }

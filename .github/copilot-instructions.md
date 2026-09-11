@@ -16,8 +16,8 @@ For full project architecture, commands, directory structure, and conventions, r
 ### Key Architectural Guidelines
 
 - **Navigation**: Real URL routes via the App Router (`src/app/(app)/...`). Use `<Link href="...">` / `useRouter()`. Do NOT reintroduce `react-router-dom` or a `NavState`-style client router.
-- **Domain Models**: Types live in `src/domain/types.ts`, mock data in `src/domain/mock.ts`, derived selectors in `src/domain/derived.ts`. Always use `newId()` from `src/domain/ids.ts` when instantiating new records.
-- **Mutations**: Go through Server Actions in `src/app/actions/*.ts` (`"use server"`), which call pure functions in `src/domain/services/*` against the `src/domain/store.ts` singleton and `revalidatePath(...)` affected routes. Never mutate the store outside a Server Action.
+- **Domain Models**: Types live in `src/domain/types.ts` (mirrors `prisma/schema.prisma`), derived view-models in `src/domain/derived.ts`, read layer in `src/domain/queries/*`.
+- **Mutations**: Go through Server Actions in `src/app/actions/*.ts` (`"use server"`), which call `src/domain/services/*` (thin Prisma wrappers) and `revalidateTag(...)`/`revalidatePath(...)` affected routes. `getCurrentUser()` from `src/lib/auth.ts` resolves the current user; never query Prisma directly from a view.
 - **Three Consolidation Modes**:
   1. `direct` ("Lembrar") — Recall without clues
   2. `guided` ("Explicar") — Feynman technique explanation

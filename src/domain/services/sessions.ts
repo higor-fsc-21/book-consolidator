@@ -1,50 +1,71 @@
-import type {
-  Book,
-  RevisionRecord,
-  RevisionSession,
-  SessionMode,
-} from "../types";
-import { newId } from "../ids";
+import "server-only";
+import { db } from "@/lib/db";
+import { calculateScore } from "../derived";
+import type { Performance, SessionMode } from "../types";
 
-export const addRevision = (
-  books: Book[],
-  bookId: string,
-  revision: Omit<RevisionRecord, "id">,
-): Book[] =>
-  books.map((b) =>
-    b.id === bookId
-      ? {
-          ...b,
-          revisions: [...b.revisions, { ...revision, id: newId() }],
-          lastRevision: revision.date,
-        }
-      : b,
-  );
-
-export const startSession = (
-  sessions: RevisionSession[],
+export async function startSession(
+  userId: string,
   data: { bookId: string; chapterId?: string; mode?: SessionMode },
-): { sessions: RevisionSession[]; session: RevisionSession } => {
-  const session: RevisionSession = {
-    id: newId(),
-    bookId: data.bookId,
-    chapterId: data.chapterId,
-    mode: data.mode,
-    createdAt: new Date().toISOString(),
-  };
-  return { sessions: [...sessions, session], session };
-};
+) {
+  await db.book.findFirstOrThrow({
+    where: { id: data.bookId, userId, deletedAt: null },
+  });
+  return db.revisionSession.create({
+    data: {
+      userId,
+      bookId: data.bookId,
+      chapterId: data.chapterId ?? null,
+      mode: data.mode ?? null,
+      startedAt: new Date(),
+    },
+  });
+}
 
-export const completeSession = (
-  books: Book[],
-  sessions: RevisionSession[],
+export interface SessionPerformanceEntry {
+  questionId: string | null;
+  performance: Performance;
+}
+
+export async function completeSession(
+  userId: string,
   sessionId: string,
-  revision: Omit<RevisionRecord, "id">,
-): { books: Book[]; sessions: RevisionSession[] } => {
-  const session = sessions.find((s) => s.id === sessionId);
-  if (!session) return { books, sessions };
-  return {
-    books: addRevision(books, session.bookId, revision),
-    sessions: sessions.filter((s) => s.id !== sessionId),
-  };
-};
+  mode: SessionMode,
+  entries: SessionPerformanceEntry[],
+) {
+  const session = await db.revisionSession.findFirstOrThrow({
+    where: { id: sessionId, userId },
+  });
+
+  const correct = entries.filter((e) => e.performance === "correct").length;
+  const partial = entries.filter((e) => e.performance === "partial").length;
+  const wrong = entries.filter((e) => e.performance === "wrong").length;
+  const score = calculateScore({
+    correct,
+    partial,
+    wrong,
+    total: entries.length,
+  });
+
+  if (entries.length > 0) {
+    await db.sessionAttempt.createMany({
+      data: entries.map((e) => ({
+        sessionId,
+        questionId: e.questionId,
+        performance: e.performance,
+      })),
+    });
+  }
+
+  const completedAt = new Date();
+  await db.revisionSession.update({
+    where: { id: sessionId },
+    data: { mode, score, completedAt },
+  });
+
+  await db.book.update({
+    where: { id: session.bookId },
+    data: { lastRevision: completedAt },
+  });
+
+  return { bookId: session.bookId, score };
+}

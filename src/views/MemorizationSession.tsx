@@ -122,7 +122,10 @@ function DirectSession({
 }: {
   questions: Array<{ question: Question; chapter: Chapter }>;
   book: Book;
-  onFinish: (results: SessionResults) => void;
+  onFinish: (
+    results: SessionResults,
+    performances: Record<string, Performance>,
+  ) => void;
 }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -157,7 +160,10 @@ function DirectSession({
           wrong,
           total: questions.length,
         });
-        onFinish({ correct, partial, wrong, total: questions.length, score });
+        onFinish(
+          { correct, partial, wrong, total: questions.length, score },
+          newPerf,
+        );
       }
     },
     [current, currentIdx, performances, questions.length, onFinish],
@@ -752,23 +758,33 @@ export function MemorizationSession({
   );
 
   const persistRevision = useCallback(
-    (r: SessionResults, mode: SessionMode) => {
-      completeSessionAction(sessionId, {
-        date: new Date().toISOString().slice(0, 10),
-        mode,
-        score: r.score,
-        questionsCount: r.total,
-        difficultTopics: [],
-      });
+    (
+      r: SessionResults,
+      mode: SessionMode,
+      performances?: Record<string, Performance>,
+    ) => {
+      const entries = performances
+        ? Object.entries(performances).map(([questionId, performance]) => ({
+            questionId,
+            performance,
+          }))
+        : (
+            [
+              ...Array(r.correct).fill("correct"),
+              ...Array(r.partial).fill("partial"),
+              ...Array(r.wrong).fill("wrong"),
+            ] as Performance[]
+          ).map((performance) => ({ questionId: null, performance }));
+      completeSessionAction(sessionId, mode, entries);
     },
     [sessionId],
   );
 
   const handleFinish = useCallback(
-    (r: SessionResults) => {
+    (r: SessionResults, performances: Record<string, Performance>) => {
       setResults(r);
       setStep("results");
-      persistRevision(r, selectedMode ?? "direct");
+      persistRevision(r, selectedMode ?? "direct", performances);
     },
     [persistRevision, selectedMode],
   );

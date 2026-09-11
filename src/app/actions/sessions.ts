@@ -1,39 +1,41 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import type { RevisionRecord, SessionMode } from "@/domain/types";
-import { store } from "@/domain/store";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { getCurrentUser } from "@/lib/auth";
+import { booksTag, bookTag, sessionTag } from "@/lib/cache-tags";
+import type { Performance, SessionMode } from "@/domain/types";
 import * as sessionsService from "@/domain/services/sessions";
 
 export async function startSessionAction(
   bookId: string,
   options?: { mode?: SessionMode; chapterId?: string },
 ) {
-  const { sessions, session } = sessionsService.startSession(store.sessions, {
+  const user = await getCurrentUser();
+  const session = await sessionsService.startSession(user.id, {
     bookId,
     chapterId: options?.chapterId,
     mode: options?.mode,
   });
-  store.sessions = sessions;
   redirect(`/sessoes/${session.id}`);
 }
 
 export async function completeSessionAction(
   sessionId: string,
-  revision: Omit<RevisionRecord, "id">,
+  mode: SessionMode,
+  entries: { questionId: string | null; performance: Performance }[],
 ) {
-  const session = store.sessions.find((s) => s.id === sessionId);
-  const { books, sessions } = sessionsService.completeSession(
-    store.books,
-    store.sessions,
+  const user = await getCurrentUser();
+  const { bookId } = await sessionsService.completeSession(
+    user.id,
     sessionId,
-    revision,
+    mode,
+    entries,
   );
-  store.books = books;
-  store.sessions = sessions;
-  if (session) {
-    revalidatePath(`/livros/${session.bookId}`);
-  }
+  revalidateTag(booksTag(user.id));
+  revalidateTag(bookTag(bookId));
+  revalidateTag(sessionTag(sessionId));
+  revalidatePath(`/livros/${bookId}`);
   revalidatePath(`/sessoes/${sessionId}`);
+  revalidatePath("/");
 }

@@ -3,13 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { Book, RevisionRecord } from "@/domain/types";
+import type { Book } from "@/domain/types";
 import {
   statusLabels,
   consolidationLabels,
   modeLabels,
 } from "@/domain/constants";
-import { avgScore } from "@/domain/derived";
+import {
+  avgScore,
+  coverGradient,
+  lastPerformance,
+  revisionRecords,
+  type RevisionRecord,
+} from "@/domain/derived";
 import { updateBook, startReading } from "@/app/actions/books";
 import { createChapter, toggleChapterRead } from "@/app/actions/chapters";
 import { startSessionAction } from "@/app/actions/sessions";
@@ -201,6 +207,7 @@ export function BookDetail({ book }: { book: Book }) {
     0,
   );
   const avg = avgScore(book);
+  const revisions = revisionRecords(book);
 
   const progress =
     book.totalChapters > 0 && readChapters > 0
@@ -238,7 +245,7 @@ export function BookDetail({ book }: { book: Book }) {
           </Link>
 
           <div className="flex gap-8 items-start">
-            <BookCover gradient={book.coverGradient} />
+            <BookCover gradient={coverGradient(book.id)} />
 
             <div className="flex-1 min-w-0">
               <h1
@@ -325,11 +332,11 @@ export function BookDetail({ book }: { book: Book }) {
                     </div>
                   </div>
                 )}
-                {book.revisions.length > 0 && (
+                {revisions.length > 0 && (
                   <div>
                     <div className="text-[#74777d]">Revisões</div>
                     <div className="text-[#1b1c1c] font-[600] mt-0.5">
-                      {book.revisions.length}
+                      {revisions.length}
                     </div>
                   </div>
                 )}
@@ -474,9 +481,7 @@ export function BookDetail({ book }: { book: Book }) {
                 {
                   id: "revisions",
                   label: `Revisões${
-                    book.revisions.length > 0
-                      ? ` (${book.revisions.length})`
-                      : ""
+                    revisions.length > 0 ? ` (${revisions.length})` : ""
                   }`,
                 },
               ] as const
@@ -634,23 +639,28 @@ export function BookDetail({ book }: { book: Book }) {
                                   <div className="text-xs text-[#43474d] mt-2 leading-relaxed">
                                     {q.answer}
                                   </div>
-                                  {q.lastPerformance && (
-                                    <span
-                                      className={`mt-2 text-[10px] font-mono px-2 py-0.5 rounded inline-block ${
-                                        q.lastPerformance === "correct"
-                                          ? "bg-[#8ba889]/20 text-[#2a5628]"
-                                          : q.lastPerformance === "partial"
-                                            ? "bg-[#f2d492]/30 text-[#7a5a00]"
-                                            : "bg-[#ba1a1a]/10 text-[#ba1a1a]"
-                                      }`}
-                                    >
-                                      {q.lastPerformance === "correct"
-                                        ? "✓ Acertei"
-                                        : q.lastPerformance === "partial"
-                                          ? "◐ Parcial"
-                                          : "✗ Errei"}
-                                    </span>
-                                  )}
+                                  {(() => {
+                                    const perf = lastPerformance(q, book);
+                                    return (
+                                      perf && (
+                                        <span
+                                          className={`mt-2 text-[10px] font-mono px-2 py-0.5 rounded inline-block ${
+                                            perf === "correct"
+                                              ? "bg-[#8ba889]/20 text-[#2a5628]"
+                                              : perf === "partial"
+                                                ? "bg-[#f2d492]/30 text-[#7a5a00]"
+                                                : "bg-[#ba1a1a]/10 text-[#ba1a1a]"
+                                          }`}
+                                        >
+                                          {perf === "correct"
+                                            ? "✓ Acertei"
+                                            : perf === "partial"
+                                              ? "◐ Parcial"
+                                              : "✗ Errei"}
+                                        </span>
+                                      )
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             </div>
@@ -859,7 +869,7 @@ export function BookDetail({ book }: { book: Book }) {
         {/* Revisions */}
         {activeTab === "revisions" && (
           <div>
-            {book.revisions.length > 0 ? (
+            {revisions.length > 0 ? (
               <>
                 {/* Bar chart */}
                 <div className="bg-white rounded-xl p-6 shadow-paper border border-[#e4e2e2] mb-6">
@@ -867,7 +877,7 @@ export function BookDetail({ book }: { book: Book }) {
                     Evolução do desempenho
                   </div>
                   <div className="flex items-end gap-4 h-20">
-                    {book.revisions.map((r) => {
+                    {revisions.map((r) => {
                       const barColor =
                         r.score >= 80
                           ? "bg-[#8ba889]"
@@ -904,10 +914,9 @@ export function BookDetail({ book }: { book: Book }) {
                       );
                     })}
                   </div>
-                  {book.revisions.length >= 2 &&
+                  {revisions.length >= 2 &&
                     (() => {
-                      const diff =
-                        book.revisions.at(-1)!.score - book.revisions[0].score;
+                      const diff = revisions.at(-1)!.score - revisions[0].score;
                       return (
                         <div className="mt-4 pt-4 border-t border-[#f0eeee] text-sm text-[#74777d]">
                           Da primeira à última revisão:{" "}
@@ -928,7 +937,7 @@ export function BookDetail({ book }: { book: Book }) {
 
                 {/* Revision list */}
                 <div className="bg-white rounded-xl p-5 shadow-paper border border-[#e4e2e2]">
-                  {book.revisions.map((r, i) => (
+                  {revisions.map((r, i) => (
                     <RevisionRow key={r.id} revision={r} index={i} />
                   ))}
                 </div>

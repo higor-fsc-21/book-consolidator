@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { MemorizationSession } from "@/views/MemorizationSession";
-import { store } from "@/domain/store";
+import { getCurrentUser } from "@/lib/auth";
+import { getSessionForUser } from "@/domain/queries/sessions";
 
 export default async function SessionPage({
   params,
@@ -8,12 +9,11 @@ export default async function SessionPage({
   params: Promise<{ sessionId: string }>;
 }) {
   const { sessionId } = await params;
-  const session = store.sessions.find((s) => s.id === sessionId);
-  if (!session) notFound();
+  const user = await getCurrentUser();
+  const result = await getSessionForUser(user.id, sessionId);
+  if (!result) notFound();
 
-  const book = store.books.find((b) => b.id === session.bookId);
-  if (!book) notFound();
-
+  const { session, book } = result;
   const chapter = session.chapterId
     ? book.chapters.find((c) => c.id === session.chapterId)
     : undefined;
@@ -23,7 +23,7 @@ export default async function SessionPage({
       sessionId={session.id}
       book={book}
       chapter={chapter}
-      initialMode={session.mode}
+      initialMode={session.mode ?? undefined}
     />
   );
 }

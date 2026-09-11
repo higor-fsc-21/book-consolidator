@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ChapterDetail } from "@/views/ChapterDetail";
-import { store } from "@/domain/store";
+import { getCurrentUser } from "@/lib/auth";
+import { getChapterWithQuestions } from "@/domain/queries/books";
 
 export default async function ChapterDetailPage({
   params,
@@ -8,10 +9,13 @@ export default async function ChapterDetailPage({
   params: Promise<{ bookId: string; chapterId: string }>;
 }) {
   const { bookId, chapterId } = await params;
-  const book = store.books.find((b) => b.id === bookId);
-  if (!book) notFound();
-  const chapter = book.chapters.find((c) => c.id === chapterId);
-  if (!chapter) notFound();
+  const user = await getCurrentUser();
+  const { book, chapter } = await getChapterWithQuestions(
+    user.id,
+    bookId,
+    chapterId,
+  );
+  if (!book || !chapter) notFound();
 
   return <ChapterDetail book={book} chapter={chapter} />;
 }

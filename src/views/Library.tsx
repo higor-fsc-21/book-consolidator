@@ -9,7 +9,7 @@ import type {
   ConsolidationState,
 } from "@/domain/types";
 import { statusLabels, consolidationLabels } from "@/domain/constants";
-import { avgScore } from "@/domain/derived";
+import { avgScore, coverGradient } from "@/domain/derived";
 import { createBook } from "@/app/actions/books";
 import { BookModal } from "@/components/BookModal";
 
@@ -87,7 +87,7 @@ function BookCard({ book }: { book: Book }) {
       className="group w-full bg-white rounded-xl p-5 shadow-paper hover:shadow-paper-lg transition-shadow text-left block"
     >
       <div className="flex gap-4">
-        <BookCover gradient={book.coverGradient} />
+        <BookCover gradient={coverGradient(book.id)} />
 
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-start justify-between gap-2">

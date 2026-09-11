@@ -1,24 +1,28 @@
-import type { Book, Question } from "../types";
-import { newId } from "../ids";
+import "server-only";
+import { db } from "@/lib/db";
+import type { Difficulty } from "../types";
 
-export const addQuestion = (
-  books: Book[],
+export interface NewQuestionData {
+  text: string;
+  answer: string;
+  difficulty: Difficulty;
+}
+
+export async function addQuestion(
+  userId: string,
   bookId: string,
   chapterId: string,
-  question: Omit<Question, "id">,
-): Book[] =>
-  books.map((b) =>
-    b.id === bookId
-      ? {
-          ...b,
-          chapters: b.chapters.map((c) =>
-            c.id === chapterId
-              ? {
-                  ...c,
-                  questions: [...c.questions, { ...question, id: newId() }],
-                }
-              : c,
-          ),
-        }
-      : b,
-  );
+  question: NewQuestionData,
+) {
+  await db.book.findFirstOrThrow({
+    where: { id: bookId, userId, deletedAt: null },
+  });
+  return db.question.create({
+    data: {
+      chapterId,
+      text: question.text,
+      answer: question.answer,
+      difficulty: question.difficulty,
+    },
+  });
+}

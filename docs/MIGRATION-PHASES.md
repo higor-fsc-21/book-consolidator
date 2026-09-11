@@ -15,8 +15,8 @@ de cada fase a aplicação deve estar funcional e utilizável.
 | ----------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------- |
 | [1](#fase-1--fundação-next-js-app-router--domínio-separado) | Fundação: Next.js App Router + domínio separado | D02, D03, D04, D18, D33                     |
 | [2](#fase-2--modelagem-postgresql-prisma-e-seed)            | Modelagem PostgreSQL, Prisma e seed             | D05, D06, D07, D08, D10–D15, D27, D28       |
-| [3](#fase-3--conectar-leituras-ao-banco)                    | Conectar leituras ao banco                      | D21, D24, D25, D29, D33                     |
-| [4](#fase-4--autenticação-mutações-e-google-books)          | Autenticação, mutações e Google Books           | D09, D19, D20, D26, D27, D30, D31, D32, D34 |
+| [3](#fase-3--conectar-leituras-e-escritas-ao-banco)         | Conectar leituras e escritas ao banco           | D08, D19, D21, D24, D25, D29, D30, D33      |
+| [4](#fase-4--autenticação-validação-e-google-books)         | Autenticação, validação e Google Books          | D09, D19, D20, D26, D27, D30, D31, D32, D34 |
 | [5](#fase-5--sessões-tentativas-e-score)                    | Sessões, tentativas e score                     | D14, D15, D16, D17, D22, D23, D39           |
 | [6](#fase-6--testes-observabilidade-e-deploy)               | Testes, observabilidade e deploy                | D35, D36, D37, D38, D40                     |
 
@@ -193,30 +193,41 @@ SessionAttempt   id, sessionId, questionId, performance, userAnswer, attemptedAt
 
 ---
 
-## Fase 3 — Conectar leituras ao banco
+## Fase 3 — Conectar leituras e escritas ao banco
 
-**Objetivo:** todas as telas de leitura passam a consultar o PostgreSQL; o mock é eliminado.
+**Objetivo:** todas as telas passam a consultar o PostgreSQL e as Server Actions existentes
+passam a persistir via Prisma; o mock e o store em memória são eliminados. Um usuário de
+desenvolvimento fixo resolve `userId` até a Fase 4 trazer autenticação real — sem isso, a
+app ficaria somente leitura e violaria a regra de progressão do [D01](./DECISIONS.md#d01--estratégia-de-migração).
 
 **Decisões aplicadas:**
+[D08](./DECISIONS.md#d08--isolamento-de-dados-por-usuário) ·
+[D19](./DECISIONS.md#d19--server-components-server-actions-e-route-handlers) ·
 [D21](./DECISIONS.md#d21--exposição-de-respostas) ·
 [D24](./DECISIONS.md#d24--granularidade-das-queries) ·
 [D25](./DECISIONS.md#d25--cache-e-revalidação) ·
+[D27](./DECISIONS.md#d27--exclusão-de-dados) ·
 [D29](./DECISIONS.md#d29--dados-derivados) ·
+[D30](./DECISIONS.md#d30--capas-e-metadados-de-livros) (fallback) ·
 [D33](./DECISIONS.md#d33--estado-no-frontend)
 
 ### Escopo
 
-**3.1 — Cliente Prisma**
+**3.1 — Cliente Prisma e usuário de desenvolvimento**
 
 - Criar `src/lib/db.ts` com singleton do Prisma Client (evitando múltiplas instâncias em dev).
+- Criar `src/lib/auth.ts` com `getCurrentUser()`, resolvendo o único usuário pelo
+  `SEED_USER_EMAIL`. Este é o único ponto que a Fase 4 substitui por Supabase Auth.
 
 **3.2 — Camada de queries ([D24](./DECISIONS.md#d24--granularidade-das-queries))**
 
 ```text
 src/domain/queries/books.ts
   getBooksForUser(userId)          lista + relações necessárias
-  getBookWithEverything(bookId)    capítulos + perguntas + sessões
-  getChapterWithQuestions(chapterId)
+  getBookWithEverything(userId, bookId)    capítulos + perguntas + sessões
+  getChapterWithQuestions(userId, bookId, chapterId)
+src/domain/queries/sessions.ts
+  getSessionForUser(userId, sessionId)
 ```
 
 - Cada query carrega o **livro completo** com capítulos, perguntas e sessões
@@ -226,48 +237,77 @@ src/domain/queries/books.ts
 - Todas filtram `deletedAt: null` ([D27](./DECISIONS.md#d27--exclusão-de-dados)).
 - Todas filtram por `userId` ([D08](./DECISIONS.md#d08--isolamento-de-dados-por-usuário)).
 
-**3.3 — Server Components**
+**3.3 — Reformular o domínio para espelhar o Prisma**
 
-- Dashboard, Biblioteca, BookDetail e ChapterDetail passam a chamar as queries diretamente,
-  sem API HTTP intermediária ([D19](./DECISIONS.md#d19--server-components-server-actions-e-route-handlers)).
+- `src/domain/types.ts` passa a espelhar `prisma/schema.prisma` campo a campo (`Date | null` em
+  vez de `string | undefined`; `sessions`/`attempts` em vez do antigo `revisions: RevisionRecord[]`).
+- `coverGradient` e `Question.lastPerformance` deixam de ser persistidos; viram seletores
+  derivados em `src/domain/derived.ts` (`coverGradient(bookId)`, `lastPerformance(question, book)`).
+
+**3.4 — Server Components**
+
+- Dashboard, Biblioteca, BookDetail, ChapterDetail e a tela de sessão passam a chamar as
+  queries diretamente, sem API HTTP intermediária
+  ([D19](./DECISIONS.md#d19--server-components-server-actions-e-route-handlers)).
 - Componentes interativos são isolados como Client Components recebendo dados por props.
 
-**3.4 — Cache ([D25](./DECISIONS.md#d25--cache-e-revalidação))**
+**3.5 — Server Actions passam a escrever no Postgres**
 
-- Definir a estratégia de cache por rota e as tags de revalidação que serão usadas na Fase 4.
-- Garantir que nenhum dado pessoal seja cacheado de forma compartilhada.
+- `src/domain/services/*.ts` tornam-se funções finas sobre o Prisma Client (`addBook`,
+  `updateBook`, `startReading`, `addChapter`, `toggleChapterRead`, `addQuestion`,
+  `startSession`, `completeSession`).
+- `src/app/actions/*.ts` chamam esses serviços e disparam `revalidateTag`/`revalidatePath`.
+- Sem Zod, sem `$transaction` e sem autorização real ainda — isso é hardening da Fase 4
+  ([D20](./DECISIONS.md#d20--validação-de-dados), [D26](./DECISIONS.md#d26--operações-compostas)).
 
-**3.5 — Derivados e limpeza**
+**3.6 — Cache ([D25](./DECISIONS.md#d25--cache-e-revalidação))**
+
+- `src/lib/cache-tags.ts` define `booksTag(userId)`, `bookTag(bookId)`, `sessionTag(sessionId)`.
+- Leituras usam `unstable_cache` com essas tags; toda mutação chama `revalidateTag` da tag
+  correspondente, além do `revalidatePath` já existente.
+
+**3.7 — Derivados e limpeza**
 
 - `avgScore`, progresso e contagens permanecem em `src/domain/derived.ts`
-  ([D29](./DECISIONS.md#d29--dados-derivados)).
-- Remover `src/domain/mock.ts` e qualquer resquício de estado global de livros
-  ([D33](./DECISIONS.md#d33--estado-no-frontend)).
+  ([D29](./DECISIONS.md#d29--dados-derivados)), agora recalculados a partir de
+  `sessions`/`attempts`.
+- Remover `src/domain/mock.ts` e `src/domain/store.ts`
+  ([D33](./DECISIONS.md#d33--estado-no-frontend)); o mock vira fixture de seed em
+  `prisma/seed-data.ts`.
 
 ### Entregáveis
 
-- `src/lib/db.ts` e `src/domain/queries/`.
-- Todas as telas de leitura exibindo dados reais do Supabase.
+- `src/lib/db.ts`, `src/lib/auth.ts`, `src/lib/cache-tags.ts` e `src/domain/queries/`.
+- Todas as telas exibindo e persistindo dados reais do Postgres.
+- `prisma/seed-data.ts` (mock movido) e `prisma/seed.ts` atualizado para gerar tentativas em
+  todas as sessões, não só na mais recente.
 
 ### Critérios de conclusão
 
-- [ ] Nenhuma tela importa dados de mock.
-- [ ] Dashboard, Biblioteca, BookDetail e ChapterDetail carregam do banco.
-- [ ] Métricas derivadas continuam corretas (comparar com o comportamento anterior).
-- [ ] Cache configurado e verificado.
+- [x] Nenhuma tela importa dados de mock ou o store em memória.
+- [x] Dashboard, Biblioteca, BookDetail, ChapterDetail e a tela de sessão carregam do banco.
+- [x] Criar/editar livro, adicionar capítulo/pergunta, marcar capítulo como lido e
+      iniciar/concluir uma sessão persistem via Prisma.
+- [x] Métricas derivadas continuam corretas (comparadas com o comportamento anterior do mock).
+- [x] Cache por tags configurado e invalidado em toda mutação.
 
 ### Riscos
 
-- O formato retornado pelo Prisma difere do tipo `Book` original (ex.: `Decimal`, `Date`);
-  criar mapeadores em `src/domain/mappers.ts` se necessário.
-- Fase ainda usa um `userId` fixo de desenvolvimento — a autenticação real chega na Fase 4.
+- Sem Zod e sem autorização real: toda action confia no chamador e só garante posse via
+  `userId` nas queries/serviços. Aceitável com um único usuário de desenvolvimento; a Fase 4
+  adiciona validação e autenticação real por requisição.
+- Sem `$transaction` em escritas compostas (ex.: concluir sessão grava sessão e livro em
+  instruções separadas); revisitado na Fase 4 ([D26](./DECISIONS.md#d26--operações-compostas)).
+- `unstable_cache` pode serializar `Date` para string; a camada de queries reidrata cada campo
+  de data defensivamente — todo novo campo de data precisa ser adicionado a esses helpers.
 
 ---
 
-## Fase 4 — Autenticação, mutações e Google Books
+## Fase 4 — Autenticação, validação e Google Books
 
-**Objetivo:** login real e CRUD persistido de livros, capítulos e perguntas, com cadastro
-alimentado pela Google Books API.
+**Objetivo:** substituir o usuário de desenvolvimento fixo por autenticação real, validar todas
+as Server Actions introduzidas na Fase 3, envolver operações compostas em transação e alimentar
+o cadastro de livros pela Google Books API.
 
 **Decisões aplicadas:**
 [D09](./DECISIONS.md#d09--autenticação) ·
@@ -286,30 +326,32 @@ alimentado pela Google Books API.
 
 - Substituir o login placeholder por autenticação real.
 - Middleware protegendo o grupo de rotas `(app)`.
-- Helper `getCurrentUser()` resolvendo o `User` local a partir de `authUserId`.
-- Todas as queries da Fase 3 passam a receber o `userId` da sessão.
+- Reescrever os internos de `getCurrentUser()` (criado na Fase 3) para resolver o `User` local
+  a partir de `authUserId` da sessão — os call sites em Server Components e Actions não mudam.
 
 **4.2 — Validação ([D20](./DECISIONS.md#d20--validação-de-dados))**
 
 - Criar `src/lib/validators.ts` com schemas Zod: `CreateBookInput`, `UpdateBookInput`,
   `CreateChapterInput`, `CreateQuestionInput`.
 - Inputs nunca aceitam `id`, `userId`, `score` ou `consolidationState` vindos do cliente.
+- Validar no início de cada Server Action já existente (`src/app/actions/*.ts`), antes de
+  chamar o serviço de domínio.
 
-**4.3 — Server Actions ([D19](./DECISIONS.md#d19--server-components-server-actions-e-route-handlers))**
+**4.3 — Transações em operações compostas ([D26](./DECISIONS.md#d26--operações-compostas))**
 
-```text
-createBook / updateBook / softDeleteBook
-createChapter / updateChapter / toggleChapterRead
-createQuestion / updateQuestion / deleteQuestion
-```
+- `addBook` (Fase 3) passa a criar o livro e seus capítulos iniciais dentro de
+  `prisma.$transaction`.
+- `completeSession` (Fase 3) passa a gravar as tentativas, atualizar a sessão e o livro dentro
+  da mesma transação, em vez de instruções separadas.
+- `softDeleteBook` é introduzido nesta fase: marca o livro (e trata dados associados) de forma
+  consistente ([D27](./DECISIONS.md#d27--exclusão-de-dados)).
 
-Cada action: valida sessão → valida input com Zod → executa serviço de domínio →
-`revalidatePath`.
+**4.4 — Server Actions estendidas ([D19](./DECISIONS.md#d19--server-components-server-actions-e-route-handlers))**
 
-**4.4 — Transações ([D26](./DECISIONS.md#d26--operações-compostas))**
-
-- `createBook` gera o livro e seus capítulos iniciais em uma única transação.
-- `softDeleteBook` marca o livro e trata os dados associados de forma consistente.
+- `updateBook` ganha `deleteBook` (soft delete); `createQuestion`/`createChapter` ganham
+  `updateQuestion`/`updateChapter`/`deleteQuestion`.
+- Cada action passa a: validar sessão → validar input com Zod → executar serviço de domínio →
+  `revalidateTag`/`revalidatePath` (já em uso desde a Fase 3).
 
 **4.5 — Google Books ([D30](./DECISIONS.md#d30--capas-e-metadados-de-livros), [D31](./DECISIONS.md#d31--estratégia-de-busca), [D32](./DECISIONS.md#d32--paginação))**
 
@@ -527,25 +569,25 @@ interface Logger {
 
 ## Rastreabilidade decisão → fase
 
-| Decisão | Fase                  | Decisão | Fase                       |
-| ------- | --------------------- | ------- | -------------------------- |
-| D01     | Transversal           | D21     | 3                          |
-| D02     | 1                     | D22     | 1 (extração), 5 (uso)      |
-| D03     | 1                     | D23     | 5                          |
-| D04     | 1                     | D24     | 3                          |
-| D05     | 2                     | D25     | 3, 4                       |
-| D06     | 2                     | D26     | 4, 5                       |
-| D07     | 2                     | D27     | 2 (schema), 3–4 (uso)      |
-| D08     | 2 (schema), 3–4 (uso) | D28     | 2                          |
-| D09     | 4                     | D29     | 3                          |
-| D10     | 2                     | D30     | 2 (colunas), 4 (uso)       |
-| D11     | 2                     | D31     | 4                          |
-| D12     | 2                     | D32     | 4                          |
-| D13     | 2                     | D33     | 1 (preparo), 3 (conclusão) |
-| D14     | 2 (schema), 5 (uso)   | D34     | 4, 5                       |
-| D15     | 2 (schema), 5 (uso)   | D35     | 6                          |
-| D16     | 5                     | D36     | 6                          |
-| D17     | 5                     | D37     | 2 (setup), 6 (produção)    |
-| D18     | 1                     | D38     | 6                          |
-| D19     | 3, 4                  | D39     | 5                          |
-| D20     | 4                     | D40     | 6                          |
+| Decisão | Fase                   | Decisão | Fase                       |
+| ------- | ---------------------- | ------- | -------------------------- |
+| D01     | Transversal            | D21     | 3                          |
+| D02     | 1                      | D22     | 1 (extração), 5 (uso)      |
+| D03     | 1                      | D23     | 5                          |
+| D04     | 1                      | D24     | 3                          |
+| D05     | 2                      | D25     | 3                          |
+| D06     | 2                      | D26     | 3 (base), 4 (transações)   |
+| D07     | 2                      | D27     | 2 (schema), 3–4 (uso)      |
+| D08     | 2 (schema), 3–4 (uso)  | D28     | 2                          |
+| D09     | 4                      | D29     | 3                          |
+| D10     | 2                      | D30     | 2 (colunas), 4 (uso)       |
+| D11     | 2                      | D31     | 4                          |
+| D12     | 2                      | D32     | 4                          |
+| D13     | 2                      | D33     | 1 (preparo), 3 (conclusão) |
+| D14     | 2 (schema), 5 (uso)    | D34     | 4, 5                       |
+| D15     | 2 (schema), 5 (uso)    | D35     | 6                          |
+| D16     | 5                      | D36     | 6                          |
+| D17     | 5                      | D37     | 2 (setup), 6 (produção)    |
+| D18     | 1                      | D38     | 6                          |
+| D19     | 3 (base), 4 (extensão) | D39     | 5                          |
+| D20     | 4                      | D40     | 6                          |

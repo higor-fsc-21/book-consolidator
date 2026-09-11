@@ -1,21 +1,19 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import type { Question } from "@/domain/types";
-import { store } from "@/domain/store";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { getCurrentUser } from "@/lib/auth";
+import { booksTag, bookTag } from "@/lib/cache-tags";
 import * as questionsService from "@/domain/services/questions";
 
 export async function createQuestion(
   bookId: string,
   chapterId: string,
-  question: Omit<Question, "id">,
+  question: questionsService.NewQuestionData,
 ) {
-  store.books = questionsService.addQuestion(
-    store.books,
-    bookId,
-    chapterId,
-    question,
-  );
+  const user = await getCurrentUser();
+  await questionsService.addQuestion(user.id, bookId, chapterId, question);
+  revalidateTag(booksTag(user.id));
+  revalidateTag(bookTag(bookId));
   revalidatePath(`/livros/${bookId}`);
   revalidatePath(`/livros/${bookId}/capitulos/${chapterId}`);
 }

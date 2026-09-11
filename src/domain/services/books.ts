@@ -1,40 +1,96 @@
+import "server-only";
+import { db } from "@/lib/db";
 import type { Book } from "../types";
-import { newId } from "../ids";
 
-export type NewBookData = Omit<Book, "id" | "revisions" | "chapters">;
+export type NewBookData = Pick<
+  Book,
+  | "title"
+  | "author"
+  | "status"
+  | "importance"
+  | "totalChapters"
+  | "consolidationState"
+> &
+  Partial<
+    Pick<
+      Book,
+      | "currentChapter"
+      | "startDate"
+      | "endDate"
+      | "lastRevision"
+      | "nextRevision"
+      | "summary"
+      | "pages"
+      | "year"
+      | "coverUrl"
+      | "googleBooksId"
+    >
+  >;
 
-export const addBook = (books: Book[], data: NewBookData): Book[] => {
-  const id = newId();
-  const newBook: Book = {
-    ...data,
-    id,
-    revisions: [],
-    chapters: Array.from({ length: data.totalChapters }, (_, i) => ({
-      id: newId(),
-      bookId: id,
-      number: i + 1,
-      title: `Capítulo ${i + 1}`,
-      questions: [],
-      isRead: false,
-    })),
-  };
-  return [...books, newBook];
-};
+export type BookUpdateData = Partial<
+  Pick<
+    Book,
+    | "title"
+    | "author"
+    | "status"
+    | "importance"
+    | "startDate"
+    | "endDate"
+    | "currentChapter"
+    | "totalChapters"
+    | "consolidationState"
+    | "lastRevision"
+    | "nextRevision"
+    | "summary"
+    | "pages"
+    | "year"
+    | "coverUrl"
+    | "googleBooksId"
+  >
+>;
 
-export const updateBook = (
-  books: Book[],
+export async function addBook(userId: string, data: NewBookData) {
+  return db.book.create({
+    data: {
+      ...data,
+      currentChapter: data.currentChapter ?? null,
+      startDate: data.startDate ?? null,
+      endDate: data.endDate ?? null,
+      lastRevision: data.lastRevision ?? null,
+      nextRevision: data.nextRevision ?? null,
+      summary: data.summary ?? null,
+      pages: data.pages ?? null,
+      year: data.year ?? null,
+      userId,
+      chapters: {
+        create: Array.from({ length: data.totalChapters }, (_, i) => ({
+          number: i + 1,
+          title: `Capítulo ${i + 1}`,
+        })),
+      },
+    },
+  });
+}
+
+export async function updateBook(
+  userId: string,
   id: string,
-  updates: Partial<Book>,
-): Book[] => books.map((b) => (b.id === id ? { ...b, ...updates } : b));
+  updates: BookUpdateData,
+) {
+  await db.book.findFirstOrThrow({ where: { id, userId, deletedAt: null } });
+  return db.book.update({ where: { id }, data: updates });
+}
 
-export const startReading = (books: Book[], bookId: string): Book[] =>
-  books.map((b) =>
-    b.id === bookId
-      ? {
-          ...b,
-          status: "reading",
-          startDate: b.startDate ?? new Date().toISOString().slice(0, 10),
-          currentChapter: b.currentChapter ?? 1,
-        }
-      : b,
-  );
+export async function startReading(userId: string, bookId: string) {
+  const book = await db.book.findFirstOrThrow({
+    where: { id: bookId, userId, deletedAt: null },
+  });
+  return db.book.update({
+    where: { id: bookId },
+    data: {
+      status: "reading",
+      startDate: book.startDate ?? new Date(),
+      currentChapter: book.currentChapter ?? 1,
+    },
+  });
+}

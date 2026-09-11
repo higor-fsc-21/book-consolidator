@@ -2,16 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Book, Chapter, Question, Difficulty } from "@/domain/types";
+import type {
+  Book,
+  Chapter,
+  Question,
+  Difficulty,
+  Performance,
+} from "@/domain/types";
+import { lastPerformance } from "@/domain/derived";
 import { createQuestion } from "@/app/actions/questions";
 import { startSessionAction } from "@/app/actions/sessions";
 
 function QuestionCard({
   question,
   index,
+  lastPerf,
 }: {
   question: Question;
   index: number;
+  lastPerf?: Performance;
 }) {
   const [revealed, setRevealed] = useState(false);
 
@@ -74,20 +83,20 @@ function QuestionCard({
               )}
             </div>
 
-            {question.lastPerformance && (
+            {lastPerf && (
               <div className="mt-3">
                 <span
                   className={`text-[10px] font-[500] px-2 py-0.5 rounded inline-block ${
-                    question.lastPerformance === "correct"
+                    lastPerf === "correct"
                       ? "bg-[#8ba889]/20 text-[#2a5628]"
-                      : question.lastPerformance === "partial"
+                      : lastPerf === "partial"
                         ? "bg-[#f2d492]/30 text-[#7a5a00]"
                         : "bg-[#ba1a1a]/10 text-[#ba1a1a]"
                   }`}
                 >
-                  {question.lastPerformance === "correct"
+                  {lastPerf === "correct"
                     ? "✓ Acertei"
-                    : question.lastPerformance === "partial"
+                    : lastPerf === "partial"
                       ? "◐ Parcial"
                       : "✗ Errei"}{" "}
                   na última revisão
@@ -217,10 +226,7 @@ export function ChapterDetail({
   );
 
   const handleSaveQuestion = (form: NewQuestionForm) => {
-    createQuestion(book.id, chapter.id, {
-      ...form,
-      lastPerformance: undefined,
-    } satisfies Omit<Question, "id">);
+    createQuestion(book.id, chapter.id, form);
     setAddingQuestion(false);
   };
 
@@ -363,7 +369,12 @@ export function ChapterDetail({
           {hasQ ? (
             <div className="space-y-3">
               {chapter.questions.map((q, i) => (
-                <QuestionCard key={q.id} question={q} index={i} />
+                <QuestionCard
+                  key={q.id}
+                  question={q}
+                  index={i}
+                  lastPerf={lastPerformance(q, book)}
+                />
               ))}
 
               {addingQuestion && (
