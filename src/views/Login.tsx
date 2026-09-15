@@ -1,67 +1,97 @@
+import Link from "next/link";
+
 export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
   return (
-    <div
-      className="min-h-full flex items-center justify-center p-6"
+    <main
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#172f3b] bg-cover bg-center px-6 py-10 sm:px-10"
       style={{
-        backgroundColor: "#fbf9f8",
-        fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
+        backgroundImage:
+          "url('https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=2200&q=85')",
       }}
     >
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex justify-center mb-10">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, #1a2e44, #2d4460)",
-              }}
-            >
+      <div className="absolute inset-0 bg-[#172f3b]/80" />
+
+      <div className="relative grid w-full max-w-5xl items-center gap-10 lg:grid-cols-[1fr_400px] lg:gap-24">
+        <div className="hidden text-white lg:block">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-3"
+            aria-label="Voltar para a página inicial"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#f2d492] text-[#172f3b]">
               <svg
-                width="18"
-                height="18"
+                width="19"
+                height="19"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="white"
-                strokeWidth="2"
+                stroke="currentColor"
+                strokeWidth="1.8"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                aria-hidden="true"
               >
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
             </div>
-            <span
-              style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
-              className="text-2xl text-[#1b1c1c]"
-            >
+            <span className="font-display text-xl tracking-[-0.02em]">
               Book Consolidator
             </span>
+          </Link>
+          <p className="mt-20 max-w-xl font-display text-5xl leading-[0.98] tracking-[-0.04em] xl:text-6xl">
+            O que você reconstrói, você realmente aprende.
+          </p>
+          <p className="mt-7 max-w-md text-lg leading-relaxed text-white/65">
+            Volte para os livros que importam e transforme leitura em memória
+            viva, explicável e aplicável.
+          </p>
+          <div className="mt-10 flex items-center gap-3 text-sm text-white/55">
+            <span className="font-mono text-xs text-[#f2d492]">01</span>
+            <span className="h-px w-10 bg-white/30" />
+            <span>Da página para a memória</span>
           </div>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl p-8 shadow-paper">
-          <div className="text-center mb-8">
-            <h1
-              style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
-              className="text-[28px] text-[#1b1c1c] leading-[1.3] mb-3"
-            >
-              Boas-vindas
+        <div className="w-full max-w-[400px] justify-self-center rounded-[4px] bg-[#f6f3ed] p-7 shadow-[16px_18px_0_rgba(242,212,146,0.25)] sm:p-9">
+          <div className="mb-8">
+            <div className="mb-6 flex items-center gap-3 lg:hidden">
+              <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#f2d492] text-[#172f3b]">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                </svg>
+              </div>
+              <span className="font-display text-xl text-[#172f3b]">
+                Book Consolidator
+              </span>
+            </div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8d6f3e]">
+              Seu próximo capítulo
+            </p>
+            <h1 className="mt-4 font-display text-4xl leading-tight tracking-[-0.035em] text-[#172f3b]">
+              Boas-vindas.
             </h1>
-            <p className="text-[#74777d] text-sm leading-relaxed">
-              Transforme seus livros em conhecimento duradouro. Recorde,
-              explique e aplique o que aprendeu.
+            <p className="mt-4 text-sm leading-relaxed text-[#536066]">
+              Entre para guardar o que vale a pena lembrar e voltar às suas
+              ideias no momento certo.
             </p>
           </div>
 
-          {/* Gmail button */}
           <form action={onLogin}>
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-3 py-3.5 px-5 rounded-lg border border-[#e4e2e2] bg-white hover:bg-[#f5f3f3] transition-all duration-150 text-[#1b1c1c] font-[500] text-sm shadow-paper-sm"
+              className="flex w-full items-center justify-center gap-3 rounded-full bg-[#172f3b] px-5 py-3.5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(23,47,59,0.18)] transition-transform hover:-translate-y-0.5"
             >
-              {/* Google SVG icon */}
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -84,18 +114,19 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
             </button>
           </form>
 
-          <p className="text-center text-xs text-[#74777d] mt-6 leading-relaxed">
+          <p className="mt-6 text-center text-xs leading-relaxed text-[#687278]">
             Ao entrar, você concorda com os termos de uso e política de
             privacidade do Book Consolidator.
           </p>
-        </div>
 
-        {/* Tagline */}
-        <p className="text-center text-xs text-[#74777d] mt-8 leading-relaxed">
-          "Não tente lembrar tudo. Tente reconstruir as ideias mais
-          importantes."
-        </p>
+          <Link
+            href="/"
+            className="mt-8 flex items-center justify-center gap-2 text-xs font-bold text-[#172f3b] underline decoration-[#d2a64c] decoration-2 underline-offset-4 hover:text-[#8d6f3e]"
+          >
+            Voltar para a página inicial
+          </Link>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

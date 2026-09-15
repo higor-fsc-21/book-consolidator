@@ -5,7 +5,7 @@ import { logout } from "@/app/(auth)/login/actions";
 
 const navItems = [
   {
-    href: "/",
+    href: "/painel",
     label: "Início",
     icon: (
       <svg
@@ -91,7 +91,8 @@ export function Sidebar({ user }: SidebarProps) {
       {}
       <nav className="flex-1 p-3 space-y-0.5">
         {navItems.map(({ href, label, icon }) => {
-          const active = href === "/" ? pathname === "/" : inLibrary;
+          const active =
+            href === "/painel" ? pathname === "/painel" : inLibrary;
           return (
             <Link
               key={href}
