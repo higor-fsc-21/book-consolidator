@@ -35,7 +35,7 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
               style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
               className="text-2xl text-[#1b1c1c]"
             >
-              Memora
+              Book Consolidator
             </span>
           </div>
         </div>
@@ -86,7 +86,7 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
 
           <p className="text-center text-xs text-[#74777d] mt-6 leading-relaxed">
             Ao entrar, você concorda com os termos de uso e política de
-            privacidade do Memora.
+            privacidade do Book Consolidator.
           </p>
         </div>
 
@@ -97,5 +97,5 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
         </p>
       </div>
     </div>
-  )
+  );
 }

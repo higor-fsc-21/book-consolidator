@@ -1,18 +1,15 @@
 # Memora — Personal Knowledge Consolidation System
 
-Next.js 15 (App Router) + React 19 + Tailwind CSS v4 project.
 Application for readers to transform reading into retained, explainable, and applicable knowledge through spaced consolidation sessions.
 
 ## Commands
 
 - `pnpm dev` - Start development server (`next dev -p ${PORT:-8443}`)
-- `pnpm build` - Build production bundle (`next build`)
-- `pnpm start` - Start the production server (`next start -p ${PORT:-8443}`)
 - `pnpm format` - Format code using `oxfmt`
 - `pnpm exec tsc --noEmit` - Typecheck TypeScript code without emitting artifacts
 - `pnpm db:up` / `pnpm db:down` - Start/stop the local Postgres container (Docker Compose)
 - `pnpm db:migrate` - Apply Prisma migrations (`prisma migrate dev`)
-- `pnpm db:seed` - Seed the database from `src/domain/mock.ts` (`prisma/seed.ts`)
+- `pnpm db:seed` - Seed the database from `prisma/seed-data.ts` (`prisma/seed.ts`)
 - `pnpm db:studio` - Open Prisma Studio to inspect data
 
 ## Architecture & Domain Model
@@ -39,56 +36,14 @@ The core philosophy is grounded in `docs/knowledge-consolidation-app.md`: "Do no
 - All mutations go through Server Actions in `src/app/actions/*.ts` (`"use server"`), which validate inputs with Zod (`src/lib/validators.ts`), call `src/domain/services/*` (using `prisma.$transaction` for composite writes and soft-delete for books), then call `revalidateTag(...)` (via `src/lib/cache-tags.ts`) and `revalidatePath(...)` for the affected routes.
 - Starting a session (`startSessionAction`) creates a `RevisionSession` row (`completedAt: null`) and redirects to `/sessoes/[sessionId]`; completing one (`completeSessionAction`) inserts `SessionAttempt` rows and sets `score`/`completedAt` on the session within a transaction, then updates `Book.lastRevision`.
 
-## Project Structure
+## Styling & Conventions
 
-Start with task-relevant files below:
-
-- `src/app/layout.tsx` - Root layout; loads `next/font/google` fonts and `globals.css`
-- `src/app/(auth)/login/` - Public login route + `actions.ts` (sets/clears the `memora_session` cookie)
-- `src/app/(app)/layout.tsx` - Protected shell rendering `Sidebar` + `{children}`
-- `src/app/(app)/**/page.tsx` - Route pages; Server Components that read `src/domain/store.ts` and pass plain props into the view components
-- `src/app/actions/{books,chapters,questions,sessions}.ts` - Server Actions (mutations)
-- `src/domain/` - Types (mirroring `prisma/schema.prisma`), constants, prompt templates, derived view-model selectors, and `services/*` (thin Prisma-backed mutation functions)
-- `src/domain/queries/` - Read layer: `getBooksForUser`, `getBookWithEverything`, `getChapterWithQuestions`, `getSessionForUser`, all cached via `unstable_cache` + tags
-- `src/lib/db.ts` - `PrismaClient` singleton; `src/lib/auth.ts` - `getCurrentUser()` (dev-user seam); `src/lib/cache-tags.ts` - cache tag builders
-- `src/views/` - Page-level view components (mostly client components):
-  - `Dashboard.tsx` - Today's consolidation sessions, quick actions, recent activity
-  - `Library.tsx` - Book collection, status filtering, and addition modal trigger
-  - `BookDetail.tsx` - Chapters, revision statistics, and book-level session trigger
-  - `ChapterDetail.tsx` - Chapter notes, summaries, and associated questions
-  - `MemorizationSession.tsx` - Interactive session runner across the 3 consolidation modes
-  - `Login.tsx` - Simple authentication view (form posts to a Server Action)
-- `src/components/` - Shared UI components (`Sidebar.tsx`, `BookModal.tsx`)
-- `docs/` - Domain & design specifications:
-  - `docs/knowledge-consolidation-app.md` - Product definition and pedagogical foundation
-  - `docs/DESIGN.md` - Color palette and design token specification
-  - `docs/MIGRATION-PHASES.md` - Multi-phase migration plan (this Next.js conversion is Phase 1)
-- `src/app/globals.css` - Global CSS entrypoint, Tailwind CSS v4 `@import`, `@theme` typography, and paper shadow utilities
-- `src/middleware.ts` - Cookie-based auth gate for `(app)` routes
-- `package.json` - Project dependencies and scripts
-- `next.config.ts` / `postcss.config.mjs` - Next.js and Tailwind v4 (`@tailwindcss/postcss`) configuration (`@` alias maps to `src`)
-- `.mise.toml` - Toolchain versions for Node.js and pnpm
-
-## Dependencies
-
-- Runtime: Next.js 15 (App Router), React 19 and React DOM 19, `server-only`
-- Styling: Tailwind CSS v4 via the `@tailwindcss/postcss` PostCSS plugin
-- Build tooling: TypeScript 5.7
-- Formatting: oxfmt
-
-## Styling
-
-This project uses **Tailwind CSS v4** through the `@tailwindcss/postcss` plugin configured in `postcss.config.mjs`. `src/app/globals.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/app/globals.css`. This scaffold does not need a separate Tailwind config file.
-
-Fonts (Libre Caslon Text, Hanken Grotesk, JetBrains Mono) are loaded via `next/font/google` in `src/app/layout.tsx` and exposed as CSS variables consumed by `--font-display` / `--font-sans` / `--font-mono` in `globals.css`.
-
-## Style & Conventions
-
+- **Tailwind CSS v4**: Configured via `@tailwindcss/postcss` and `src/app/globals.css` with `@import 'tailwindcss';`. Do not create a separate tailwind config file.
+- **Typography & Theme**: Use theme tokens in `src/app/globals.css` (`--font-display` / Libre Caslon Text for editorial headings, `--font-sans` / Hanken Grotesk for body copy, `--font-mono` / JetBrains Mono for metrics/dates) and paper shadows (`shadow-paper`, `shadow-paper-sm`, `shadow-paper-lg`).
 - **Components**: Functional components with TypeScript interfaces. Export named components (e.g. `export function Dashboard(...)`).
-- **Client vs Server**: Route `page.tsx` files are Server Components that read `src/domain/store.ts` directly; add `"use client"` to view/component files that use hooks (`useState`, `useMemo`, `usePathname`, etc.).
+- **Client vs Server**: Route `page.tsx` files are Server Components that fetch data via `src/domain/queries/*` and pass plain props into view components; add `"use client"` to view/component files that use hooks (`useState`, `useMemo`, `usePathname`, etc.).
 - **Icons**: Inline SVG icons with `stroke="currentColor"` and consistent `viewBox="0 0 24 24"`.
-- **UI Language**: Application UI copy is in Portuguese (e.g. "Biblioteca", "Sessão de Consolidação", "Lembrar", "Explicar", "Reconhecer e Aplicar"), aligning with `docs/knowledge-consolidation-app.md`.
-- **Typography & Theme**: Use theme tokens defined in `src/app/globals.css` (`--font-display` for editorial headings, `--font-sans` for body copy, `--font-mono` for metrics/dates) and paper shadows (`shadow-paper`, `shadow-paper-sm`, `shadow-paper-lg`).
+- **UI Language**: Application UI copy must remain in Portuguese (e.g. "Biblioteca", "Sessão de Consolidação", "Lembrar", "Explicar", "Reconhecer e Aplicar"), aligning with `docs/knowledge-consolidation-app.md`.
 
 ## Lessons Learned & Gotchas
 

@@ -1,39 +1,48 @@
-"use client" /* Header */ /* Breadcrumb */ /* Content */ /* Summary */ /* Questions */ /* Chapter navigation */ /* Delete Chapter Confirmation Modal */
-import { useState, useTransition } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+"use client"; /* Header */ /* Breadcrumb */ /* Content */ /* Summary */ /* Questions */ /* Chapter navigation */ /* Delete Chapter Confirmation Modal */
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type {
   Book,
   Chapter,
   Question,
   Difficulty,
   Performance,
-} from "@/domain/types"
-import { lastPerformance } from "@/domain/derived"
-import { createQuestion, deleteQuestion } from "@/app/actions/questions"
-import { deleteChapter } from "@/app/actions/chapters"
-import { startSessionAction } from "@/app/actions/sessions"
+} from "@/domain/types";
+import { lastPerformance } from "@/domain/derived";
+import {
+  createQuestion,
+  updateQuestion,
+  deleteQuestion,
+} from "@/app/actions/questions";
+import { updateChapter, deleteChapter } from "@/app/actions/chapters";
+import { startSessionAction } from "@/app/actions/sessions";
+import { QuestionModal } from "@/components/QuestionModal";
+import { ChapterModal } from "@/components/ChapterModal";
+import type { UpdateQuestionInput, UpdateChapterInput } from "@/lib/validators";
 
 function QuestionCard({
   bookId,
   question,
   index,
   lastPerf,
+  onEdit,
 }: {
-  bookId: string
-  question: Question
-  index: number
-  lastPerf?: Performance
+  bookId: string;
+  question: Question;
+  index: number;
+  lastPerf?: Performance;
+  onEdit: () => void;
 }) {
-  const [revealed, setRevealed] = useState(false)
-  const [isDeleting, startDeleteTransition] = useTransition()
+  const [revealed, setRevealed] = useState(false);
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   const difficultyStyle = {
     hard: "bg-[#ba1a1a]/10 text-[#ba1a1a]",
     medium: "bg-[#f2d492]/30 text-[#7a5a00]",
     easy: "bg-[#8ba889]/20 text-[#2a5628]",
-  }
-  const difficultyLabel = { hard: "difícil", medium: "médio", easy: "fácil" }
+  };
+  const difficultyLabel = { hard: "difícil", medium: "médio", easy: "fácil" };
 
   return (
     <div className="bg-white rounded-xl border border-[#e4e2e2] shadow-paper-sm overflow-hidden">
@@ -54,6 +63,26 @@ function QuestionCard({
                   {difficultyLabel[question.difficulty]}
                 </span>
                 <button
+                  type="button"
+                  onClick={onEdit}
+                  title="Editar pergunta"
+                  className="text-[#74777d] hover:text-[#1a2e44] p-1 transition-colors"
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                </button>
+                <button
                   disabled={isDeleting}
                   onClick={() => {
                     if (
@@ -62,8 +91,8 @@ function QuestionCard({
                       )
                     ) {
                       startDeleteTransition(async () => {
-                        await deleteQuestion(bookId, question.id)
-                      })
+                        await deleteQuestion(bookId, question.id);
+                      });
                     }
                   }}
                   title="Excluir pergunta"
@@ -143,13 +172,13 @@ function QuestionCard({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 interface NewQuestionForm {
-  text: string
-  answer: string
-  difficulty: Difficulty
+  text: string;
+  answer: string;
+  difficulty: Difficulty;
 }
 
 function AddQuestionForm({
@@ -157,16 +186,16 @@ function AddQuestionForm({
   onCancel,
   isPending = false,
 }: {
-  onSave: (q: NewQuestionForm) => void
-  onCancel: () => void
-  isPending?: boolean
+  onSave: (q: NewQuestionForm) => void;
+  onCancel: () => void;
+  isPending?: boolean;
 }) {
   const [form, setForm] = useState<NewQuestionForm>({
     text: "",
     answer: "",
     difficulty: "medium",
-  })
-  const canSave = form.text.trim() && form.answer.trim()
+  });
+  const canSave = form.text.trim() && form.answer.trim();
 
   return (
     <div className="bg-white rounded-xl border-2 border-[#1a2e44]/30 shadow-paper p-5 space-y-4">
@@ -210,7 +239,7 @@ function AddQuestionForm({
         </label>
         <div className="flex gap-2">
           {(["easy", "medium", "hard"] as Difficulty[]).map((d) => {
-            const labels = { easy: "Fácil", medium: "Médio", hard: "Difícil" }
+            const labels = { easy: "Fácil", medium: "Médio", hard: "Difícil" };
             return (
               <button
                 key={d}
@@ -223,7 +252,7 @@ function AddQuestionForm({
               >
                 {labels[d]}
               </button>
-            )
+            );
           })}
         </div>
       </div>
@@ -248,34 +277,66 @@ function AddQuestionForm({
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 export function ChapterDetail({
   book,
   chapter,
 }: {
-  book: Book
-  chapter: Chapter
+  book: Book;
+  chapter: Chapter;
 }) {
-  const router = useRouter()
-  const [addingQuestion, setAddingQuestion] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const [confirmDeleteChapter, setConfirmDeleteChapter] = useState(false)
-  const hasQ = chapter.questions.length > 0
-  const prevChapter = book.chapters.find((c) => c.number === chapter.number - 1)
-  const nextChapter = book.chapters.find((c) => c.number === chapter.number + 1)
+  const router = useRouter();
+  const [addingQuestion, setAddingQuestion] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingChapter, setEditingChapter] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [confirmDeleteChapter, setConfirmDeleteChapter] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const hasQ = chapter.questions.length > 0;
+  const prevChapter = book.chapters.find(
+    (c) => c.number === chapter.number - 1,
+  );
+  const nextChapter = book.chapters.find(
+    (c) => c.number === chapter.number + 1,
+  );
 
   const handleSaveQuestion = (form: NewQuestionForm) => {
     startTransition(async () => {
-      const res = await createQuestion(book.id, chapter.id, form)
+      const res = await createQuestion(book.id, chapter.id, form);
       if (res.success) {
-        setAddingQuestion(false)
+        setAddingQuestion(false);
       } else {
-        alert(res.error || "Erro ao criar pergunta")
+        alert(res.error || "Erro ao criar pergunta");
       }
-    })
-  }
+    });
+  };
+
+  const handleUpdateQuestion = (updates: UpdateQuestionInput) => {
+    if (!editingQuestion) return;
+    setModalError(null);
+    startTransition(async () => {
+      const res = await updateQuestion(book.id, editingQuestion.id, updates);
+      if (res.success) {
+        setEditingQuestion(null);
+      } else {
+        setModalError(res.error || "Erro ao atualizar pergunta");
+      }
+    });
+  };
+
+  const handleUpdateChapter = (updates: UpdateChapterInput) => {
+    setModalError(null);
+    startTransition(async () => {
+      const res = await updateChapter(book.id, chapter.id, updates);
+      if (res.success) {
+        setEditingChapter(false);
+      } else {
+        setModalError(res.error || "Erro ao atualizar capítulo");
+      }
+    });
+  };
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
@@ -339,6 +400,31 @@ export function ChapterDetail({
 
             <div className="flex items-center gap-2 shrink-0">
               <button
+                type="button"
+                onClick={() => {
+                  setModalError(null);
+                  setEditingChapter(true);
+                }}
+                disabled={isPending}
+                className="flex items-center gap-1.5 px-3 py-2 border border-[#e4e2e2] text-[#43474d] text-xs font-[500] rounded-lg hover:bg-[#f5f3f3] hover:text-[#1b1c1c] transition-colors disabled:opacity-40"
+              >
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                Editar
+              </button>
+
+              <button
                 onClick={() => setConfirmDeleteChapter(true)}
                 disabled={isPending}
                 className="flex items-center gap-1.5 px-3 py-2 border border-[#ba1a1a]/30 text-[#ba1a1a] text-xs font-[500] rounded-lg hover:bg-[#ba1a1a]/5 transition-colors disabled:opacity-40"
@@ -366,7 +452,7 @@ export function ChapterDetail({
                       await startSessionAction(book.id, {
                         mode: "direct",
                         chapterId: chapter.id,
-                      })
+                      });
                     })
                   }
                   className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
@@ -393,18 +479,49 @@ export function ChapterDetail({
       {}
       <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
         {}
-        {chapter.summary && (
-          <div>
-            <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest mb-3">
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest">
               Resumo do capítulo
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setModalError(null);
+                setEditingChapter(true);
+              }}
+              className="text-xs px-2.5 py-1 rounded-lg border border-[#e4e2e2] text-[#43474d] hover:bg-[#f5f3f3] hover:text-[#1b1c1c] transition-colors flex items-center gap-1.5"
+            >
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              {chapter.summary ? "Editar resumo" : "Adicionar resumo"}
+            </button>
+          </div>
+          {chapter.summary ? (
             <div className="bg-white rounded-xl p-6 shadow-paper border-l-[3px] border-[#1a2e44]/25">
               <p className="text-sm text-[#43474d] leading-relaxed">
                 {chapter.summary}
               </p>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="bg-white rounded-xl p-5 shadow-paper-sm border border-dashed border-[#c4c6cd] text-center">
+              <p className="text-xs text-[#74777d]">
+                Nenhum resumo adicionado para este capítulo.
+              </p>
+            </div>
+          )}
+        </div>
 
         {}
         <div>
@@ -447,6 +564,10 @@ export function ChapterDetail({
                   question={q}
                   index={i}
                   lastPerf={lastPerformance(q, book)}
+                  onEdit={() => {
+                    setModalError(null);
+                    setEditingQuestion(q);
+                  }}
                 />
               ))}
 
@@ -574,13 +695,14 @@ export function ChapterDetail({
                 disabled={isPending}
                 onClick={() => {
                   startTransition(async () => {
-                    const res = await deleteChapter(book.id, chapter.id)
+                    const res = await deleteChapter(book.id, chapter.id);
                     if (res.success) {
-                      router.push(`/livros/${book.id}`)
+                      router.push(`/livros/${book.id}`);
+                      router.refresh();
                     } else {
-                      alert(res.error || "Erro ao excluir capítulo")
+                      alert(res.error || "Erro ao excluir capítulo");
                     }
-                  })
+                  });
                 }}
                 className="flex-1 py-2.5 rounded-lg bg-[#ba1a1a] text-white text-sm font-[600] hover:bg-[#ba1a1a]/90 transition-colors flex items-center justify-center gap-2"
               >
@@ -593,6 +715,32 @@ export function ChapterDetail({
           </div>
         </div>
       )}
+
+      {editingQuestion && (
+        <QuestionModal
+          question={editingQuestion}
+          onSave={handleUpdateQuestion}
+          onClose={() => {
+            setModalError(null);
+            setEditingQuestion(null);
+          }}
+          isPending={isPending}
+          errorMessage={modalError}
+        />
+      )}
+
+      {editingChapter && (
+        <ChapterModal
+          chapter={chapter}
+          onSave={handleUpdateChapter}
+          onClose={() => {
+            setModalError(null);
+            setEditingChapter(false);
+          }}
+          isPending={isPending}
+          errorMessage={modalError}
+        />
+      )}
     </div>
-  )
+  );
 }

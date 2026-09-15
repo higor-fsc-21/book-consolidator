@@ -1,29 +1,29 @@
-import type { Book } from "./types"
+import type { Book } from "./types";
 
 const chaptersWithQuestions = (book: Book, chapterIds?: string[]) =>
   chapterIds
     ? book.chapters.filter(
         (c) => chapterIds.includes(c.id) && c.questions.length > 0,
       )
-    : book.chapters.filter((c) => c.questions.length > 0)
+    : book.chapters.filter((c) => c.questions.length > 0);
 
 const chapterSections = (book: Book, chapterIds?: string[]) =>
   chaptersWithQuestions(book, chapterIds)
     .map((c) => {
       const qs = c.questions
         .map((q, i) => `Q${i + 1}: ${q.text}\nR: ${q.answer}`)
-        .join("\n\n")
+        .join("\n\n");
       return `--- CAPÍTULO ${c.number}: ${c.title} ---\n${
         c.description ? `Contexto: ${c.description}\n\n` : ""
-      }${qs}`
+      }${qs}`;
     })
-    .join("\n\n")
+    .join("\n\n");
 
 export const generateDirectPrompt = (
   book: Book,
   chapterIds?: string[],
 ): string => {
-  const sections = chapterSections(book, chapterIds)
+  const sections = chapterSections(book, chapterIds);
 
   return `Você é um tutor especializado em aprendizagem por recuperação ativa.
 
@@ -48,18 +48,29 @@ Ao final de todas as questões, apresente um resumo estruturado assim:
 - Score aproximado: [porcentagem]%
 - Principais lacunas identificadas: [lista]"
 
+Além disso, logo após o resumo escrito, exporte obrigatoriamente um bloco JSON com a avaliação de cada questão (em ordem sequencial Q1, Q2, etc.), usando exatamente este formato:
+\`\`\`json
+{
+  "questions": [
+    { "index": 1, "performance": "correct" },
+    { "index": 2, "performance": "partial" }
+  ]
+}
+\`\`\`
+(Use apenas: "correct", "partial", "wrong")
+
 ANOTAÇÕES:
 
 ${sections}
 
-Quando estiver pronto, diga "Vamos começar a revisão!" e inicie com o primeiro capítulo.`
-}
+Quando estiver pronto, diga "Vamos começar a revisão!" e inicie com o primeiro capítulo.`;
+};
 
 export const generateGuidedPrompt = (
   book: Book,
   chapterIds?: string[],
 ): string => {
-  const sections = chapterSections(book, chapterIds)
+  const sections = chapterSections(book, chapterIds);
 
   return `Você é um tutor que aplica a técnica de Feynman: o aluno deve explicar cada ideia com as próprias palavras, como se ensinasse a alguém que nunca leu o livro.
 
@@ -83,22 +94,33 @@ Ao final de todas as questões, apresente um resumo estruturado assim:
 - Score aproximado: [porcentagem]%
 - Principais lacunas identificadas: [lista]"
 
+Além disso, logo após o resumo escrito, exporte obrigatoriamente um bloco JSON com a avaliação de cada questão (em ordem sequencial Q1, Q2, etc.), usando exatamente este formato:
+\`\`\`json
+{
+  "questions": [
+    { "index": 1, "performance": "correct" },
+    { "index": 2, "performance": "partial" }
+  ]
+}
+\`\`\`
+(Use apenas: "correct", "partial", "wrong")
+
 ANOTAÇÕES:
 
 ${sections}
 
-Quando estiver pronto, diga "Vamos começar a revisão!" e peça a primeira explicação.`
-}
+Quando estiver pronto, diga "Vamos começar a revisão!" e peça a primeira explicação.`;
+};
 
 export const generateRecognitionPrompt = (
   book: Book,
   chapterIds?: string[],
 ): string => {
-  const chapters = chaptersWithQuestions(book, chapterIds)
+  const chapters = chaptersWithQuestions(book, chapterIds);
 
   const concepts = chapters
     .flatMap((c) => c.questions.map((q) => `- ${q.answer.split(".")[0]}.`))
-    .join("\n")
+    .join("\n");
 
   return `Você é um tutor que testa reconhecimento e aplicação de conhecimento por meio de situações práticas.
 
@@ -124,8 +146,19 @@ Ao final, apresente um resumo estruturado assim:
 - Score aproximado: [porcentagem]%
 - Conceitos com maior dificuldade: [lista]"
 
+Além disso, logo após o resumo escrito, exporte obrigatoriamente um bloco JSON com a avaliação de cada conceito (em ordem sequencial 1, 2, etc.), usando exatamente este formato:
+\`\`\`json
+{
+  "questions": [
+    { "index": 1, "performance": "correct" },
+    { "index": 2, "performance": "partial" }
+  ]
+}
+\`\`\`
+(Use apenas: "correct", "partial", "wrong")
+
 CONCEITOS A TESTAR:
 ${concepts}
 
-Quando estiver pronto, apresente a primeira situação sem revelar qual conceito está sendo testado.`
-}
+Quando estiver pronto, apresente a primeira situação sem revelar qual conceito está sendo testado.`;
+};
