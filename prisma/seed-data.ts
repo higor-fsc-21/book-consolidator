@@ -1,54 +1,54 @@
 // Seed-only fixture data (pre-Prisma shape). Mapped into real rows by prisma/seed.ts.
-type SeedSessionMode = "direct" | "guided" | "recognition";
-type SeedPerformance = "correct" | "partial" | "wrong";
-type SeedDifficulty = "easy" | "medium" | "hard";
+type SeedSessionMode = "direct" | "guided" | "recognition"
+type SeedPerformance = "correct" | "partial" | "wrong"
+type SeedDifficulty = "easy" | "medium" | "hard"
 
 interface SeedQuestion {
-  id: string;
-  text: string;
-  answer: string;
-  difficulty: SeedDifficulty;
-  lastPerformance?: SeedPerformance;
+  id: string
+  text: string
+  answer: string
+  difficulty: SeedDifficulty
+  lastPerformance?: SeedPerformance
 }
 
 interface SeedChapter {
-  id: string;
-  bookId: string;
-  number: number;
-  title: string;
-  description?: string;
-  summary?: string;
-  questions: SeedQuestion[];
-  isRead: boolean;
+  id: string
+  bookId: string
+  number: number
+  title: string
+  description?: string
+  summary?: string
+  questions: SeedQuestion[]
+  isRead: boolean
 }
 
 interface SeedRevision {
-  id: string;
-  date: string;
-  mode: SeedSessionMode;
-  score: number;
-  questionsCount: number;
-  difficultTopics: string[];
+  id: string
+  date: string
+  mode: SeedSessionMode
+  score: number
+  questionsCount: number
+  difficultTopics: string[]
 }
 
 export interface SeedBook {
-  id: string;
-  title: string;
-  author: string;
-  status: "want" | "reading" | "completed" | "paused" | "archived";
-  importance: 1 | 2 | 3;
-  startDate?: string;
-  endDate?: string;
-  currentChapter?: number;
-  totalChapters: number;
-  consolidationState: "consolidating" | "consolidated" | "archived";
-  lastRevision?: string;
-  nextRevision?: string;
-  revisions: SeedRevision[];
-  chapters: SeedChapter[];
-  summary?: string;
-  pages?: number;
-  year?: number;
+  id: string
+  title: string
+  author: string
+  status: "want" | "reading" | "completed" | "paused" | "archived"
+  importance: 1 | 2 | 3
+  startDate?: string
+  endDate?: string
+  currentChapter?: number
+  totalChapters: number
+  consolidationState: "consolidating" | "consolidated" | "archived"
+  lastRevision?: string
+  nextRevision?: string
+  revisions: SeedRevision[]
+  chapters: SeedChapter[]
+  summary?: string
+  pages?: number
+  year?: number
 }
 
 export const MOCK_BOOKS: SeedBook[] = [
@@ -675,4 +675,4 @@ export const MOCK_BOOKS: SeedBook[] = [
     summary:
       "Covey organiza a eficácia em sete hábitos: ser proativo, começar com o fim em mente, primeiro o mais importante, pensar ganha-ganha, primeiro compreender, criar sinergia e afiar a serra.",
   },
-];
+]

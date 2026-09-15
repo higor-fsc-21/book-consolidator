@@ -87,13 +87,18 @@ export const StartSessionInputSchema = z.object({
 });
 
 export const SessionPerformanceEntrySchema = z.object({
-  questionId: UuidSchema.nullable(),
+  questionId: UuidSchema,
   performance: PerformanceSchema,
+  userAnswer: z.string().trim().max(4000).nullable().optional(),
 });
 
 export const CompleteSessionInputSchema = z.object({
   mode: SessionModeSchema,
-  entries: z.array(SessionPerformanceEntrySchema),
+  entries: z.array(SessionPerformanceEntrySchema).min(1),
+});
+
+export const CancelSessionInputSchema = z.object({
+  sessionId: UuidSchema,
 });
 
 export const GoogleBooksSearchQuerySchema = z.object({
@@ -110,6 +115,7 @@ export type CreateQuestionInput = z.infer<typeof CreateQuestionInputSchema>;
 export type UpdateQuestionInput = z.infer<typeof UpdateQuestionInputSchema>;
 export type StartSessionInput = z.infer<typeof StartSessionInputSchema>;
 export type CompleteSessionInput = z.infer<typeof CompleteSessionInputSchema>;
+export type CancelSessionInput = z.infer<typeof CancelSessionInputSchema>;
 export type SessionPerformanceEntry = z.infer<
   typeof SessionPerformanceEntrySchema
 >;
@@ -118,7 +124,10 @@ export type GoogleBooksSearchQuery = z.infer<
 >;
 
 export type ActionResult<T = void> =
-  | { success: true; data?: T }
+  | {
+      success: true;
+      data?: T;
+    }
   | {
       success: false;
       error: string;

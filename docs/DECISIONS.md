@@ -3,7 +3,7 @@
 Registro das decisões tomadas para converter o Memora de um protótipo React/Vite com estado
 em memória para uma aplicação full-stack Next.js com PostgreSQL gerenciado.
 
-Cada decisão possui um identificador estável (`D01`…`D40`) referenciado por
+Cada decisão possui um identificador estável (`D01`…`D51`) referenciado por
 [MIGRATION-PHASES.md](./MIGRATION-PHASES.md).
 
 **Status:** todas as decisões abaixo estão **aceitas**. Alterações devem ser feitas por adição
@@ -63,6 +63,9 @@ de uma nova decisão (`D41`…), preservando o histórico.
 | [D46](#d46--provisionamento-jit-por-authuserid)                     | Autenticação e Usuário      | Provisionamento JIT por `authUserId` apenas        |
 | [D47](#d47--reconciliação-do-seed-com-supabase-auth)                | Seed e Usuário de Teste     | `SEED_USER_AUTH_ID` obrigatório no seed            |
 | [D48](#d48--padronização-de-retorno-de-server-actions)              | Server Actions              | Formato tipado `ActionResult` com fieldErrors      |
+| [D49](#d49--limiar-de-consolidação)                                 | Estado de consolidação      | ≥3 sessões, média ≥80, recência 90 dias            |
+| [D50](#d50--escada-de-intervalos-de-revisão)                        | Próxima revisão             | Escada fixa ancorada na leitura                    |
+| [D51](#d51--adiamento-de-recordattempt)                             | Ciclo de vida da sessão     | Buffer no cliente; retomar do início               |
 
 ---
 
@@ -894,3 +897,69 @@ reativos com mensagens de erro inline amigáveis.
 
 - Todas as Server Actions em `src/app/actions/*.ts` retornam `ActionResult` em caso de erro de
   validação Zod ou falha de operação.
+
+---
+
+## D49 — Limiar de consolidação
+
+**Contexto:** [D17](#d17--estado-de-consolidação) deixou `consolidated` como “desempenho
+consistente e sessões recentes”, sem números. A Fase 5 precisa de uma regra executável.
+
+**Decisão:** um livro é `consolidated` quando **todas** as condições valem:
+
+```text
+completedSessions.length >= 3
+avg(score das últimas 3 sessões concluídas) >= 80
+última sessão concluída há no máximo 90 dias
+```
+
+Caso contrário, `consolidating`. `archived` continua sendo um estado administrativo definido
+explicitamente pelo usuário.
+
+**Implicações:**
+
+- O valor é persistido em `Book.consolidationState` na transação de `completeSession`.
+- A cláusula de recência seria inerte se só fosse avaliada na escrita; as views usam
+  `effectiveConsolidationState(book)` em `src/domain/derived.ts` para reavaliar na leitura.
+- Constantes em `src/domain/constants.ts`: `CONSOLIDATION_MIN_SESSIONS`,
+  `CONSOLIDATION_MIN_AVG_SCORE`, `CONSOLIDATION_RECENCY_DAYS`.
+
+---
+
+## D50 — Escada de intervalos de revisão
+
+**Contexto:** `Book.nextRevision` existia no schema sem regra de cálculo.
+
+**Decisão:** escada **fixa**, ancorada no momento em que o livro foi lido/concluído — offsets,
+não intervalos cumulativos entre sessões:
+
+```text
+3d → 7d → 14d → 30d → 60d → 90d → 365d
+```
+
+Âncora = `book.endDate ?? firstCompletedSessionDate ?? completedAt`. Passada a escada →
+`completedAt + 365d`. Sempre `max(calculado, completedAt + 1d)`. Campos `@db.Date` usam
+precisão de dia UTC.
+
+**Implicações:** a 1ª, 2ª e 3ª sessões de um livro concluído caem em `endDate+3d`, `+7d` e
+`+14d` respectivamente (desde que isso não fique no passado relativo a `completedAt + 1d`).
+
+---
+
+## D51 — Adiamento de `recordAttempt`
+
+**Contexto:** [D15](#d15--modelo-de-sessão-de-revisão) descreveu o ciclo iniciar → registrar
+tentativas → concluir. Persistência por tentativa exigiria resume no meio da sessão e uma
+constraint `@@unique([sessionId, questionId])`.
+
+**Decisão:** **não implementar `recordAttempt` na Fase 5**. O cliente acumula avaliações e
+envia todas em `completeSession`. A action é `await`ed com `useTransition` e erro inline
+([D34](#d34--feedback-de-mutações)). Retomar uma sessão pendente reentra **do início** (modo
+preservado), não no nível da tentativa.
+
+**Implicações:**
+
+- Sem migração Prisma nesta fase.
+- Sessões abandonadas aparecem como “Em andamento” e podem ser retomadas ou canceladas
+  (`cancelSession`).
+- Captura de `userAnswer` na UI permanece fora de escopo; o campo continua opcional no schema.

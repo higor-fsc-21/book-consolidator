@@ -2,7 +2,7 @@
 
 Plano de migração do protótipo React/Vite para uma aplicação Next.js com PostgreSQL no Supabase.
 
-As decisões referenciadas (`D01`…`D40`) estão detalhadas em [DECISIONS.md](./DECISIONS.md).
+As decisões referenciadas (`D01`…`D51`) estão detalhadas em [DECISIONS.md](./DECISIONS.md).
 
 Conforme [D01](./DECISIONS.md#d01--estratégia-de-migração), a migração é **gradual**: ao final
 de cada fase a aplicação deve estar funcional e utilizável.
@@ -17,7 +17,7 @@ de cada fase a aplicação deve estar funcional e utilizável.
 | [2](#fase-2--modelagem-postgresql-prisma-e-seed)            | Modelagem PostgreSQL, Prisma e seed             | D05, D06, D07, D08, D10–D15, D27, D28       |
 | [3](#fase-3--conectar-leituras-e-escritas-ao-banco)         | Conectar leituras e escritas ao banco           | D08, D19, D21, D24, D25, D29, D30, D33      |
 | [4](#fase-4--autenticação-validação-e-google-books)         | Autenticação, validação e Google Books          | D09, D19, D20, D26, D27, D30, D31, D32, D34 |
-| [5](#fase-5--sessões-tentativas-e-score)                    | Sessões, tentativas e score                     | D14, D15, D16, D17, D22, D23, D39           |
+| [5](#fase-5--sessões-tentativas-e-score)                    | Sessões, tentativas e score                     | D14–D17, D22, D23, D26, D34, D39, D49–D51   |
 | [6](#fase-6--testes-observabilidade-e-deploy)               | Testes, observabilidade e deploy                | D35, D36, D37, D38, D40                     |
 
 **Regra de progressão:** só avançar para a próxima fase quando todos os critérios de conclusão
@@ -406,25 +406,37 @@ consolidação calculados no backend.
 [D22](./DECISIONS.md#d22--geração-de-prompts) ·
 [D23](./DECISIONS.md#d23--integração-com-ia) ·
 [D26](./DECISIONS.md#d26--operações-compostas) ·
-[D39](./DECISIONS.md#d39--rate-limiting)
+[D34](./DECISIONS.md#d34--feedback-de-mutações) ·
+[D39](./DECISIONS.md#d39--rate-limiting) ·
+[D49](./DECISIONS.md#d49--limiar-de-consolidação) ·
+[D50](./DECISIONS.md#d50--escada-de-intervalos-de-revisão) ·
+[D51](./DECISIONS.md#d51--adiamento-de-recordattempt)
 
 ### Escopo
 
-**5.1 — Ciclo de vida da sessão ([D15](./DECISIONS.md#d15--modelo-de-sessão-de-revisão))**
+**5.1 — Ciclo de vida da sessão ([D15](./DECISIONS.md#d15--modelo-de-sessão-de-revisão), [D51](./DECISIONS.md#d51--adiamento-de-recordattempt))**
 
 ```text
-startSession(bookId, mode, chapterIds?)   → cria RevisionSession, retorna sessionId
-recordAttempt(sessionId, questionId, performance, userAnswer?)
-completeSession(sessionId)                → calcula score e atualiza o livro
+startSession(bookId, mode?, chapterId?)   → cria RevisionSession, retorna sessionId
+completeSession(sessionId, mode, entries) → persiste tentativas, score e agenda
+cancelSession(sessionId)                  → apaga sessão pendente
 ```
 
-- A rota `/sessoes/[sessionId]` da Fase 1 passa a operar sobre a sessão real.
+- Desvio em relação ao `chapterIds?` original: a sessão continua com um único `chapterId`
+  nullable (livro inteiro ou um capítulo). Sessões multi-capítulo ficam fora desta fase.
+- `recordAttempt` **não** é implementado ([D51](./DECISIONS.md#d51--adiamento-de-recordattempt)):
+  o cliente acumula avaliações e envia todas em `completeSession`. Retomar uma sessão pendente
+  reentra do início, com o modo preservado.
+- A rota `/sessoes/[sessionId]` opera sobre a sessão real; sessões já concluídas são somente
+  leitura.
 
 **5.2 — Modalidade Recuperação Direta (`direct`)**
 
-- A UI registra cada avaliação (acertei / parcialmente / errei) via `recordAttempt`
-  ([D14](./DECISIONS.md#d14--histórico-de-desempenho)).
-- Segue feedback pessimista ([D34](./DECISIONS.md#d34--feedback-de-mutações)).
+- A UI acumula cada avaliação (acertei / parcialmente / errei) no cliente e envia o lote em
+  `completeSession` ([D14](./DECISIONS.md#d14--histórico-de-desempenho),
+  [D51](./DECISIONS.md#d51--adiamento-de-recordattempt)).
+- Segue feedback pessimista ([D34](./DECISIONS.md#d34--feedback-de-mutações)): `await` da
+  action, `useTransition`, erro inline; só avança para o resultado após sucesso.
 
 **5.3 — Modalidades externas (`guided` e `recognition`)**
 
@@ -432,8 +444,8 @@ completeSession(sessionId)                → calcula score e atualiza o livro
   ([D22](./DECISIONS.md#d22--geração-de-prompts)), reutilizando os dados já carregados
   ([D21](./DECISIONS.md#d21--exposição-de-respostas)).
 - Criar a tela/ação de **entrada do resultado externo**
-  ([D16](./DECISIONS.md#d16--cálculo-de-score)): o usuário informa o desempenho por
-  pergunta/conceito a partir da análise final da IA.
+  ([D16](./DECISIONS.md#d16--cálculo-de-score)): grade por pergunta (acertei / parcial /
+  errei), agrupada por capítulo — sem parser de texto da IA.
 - Esse input é convertido em `SessionAttempt`s e o score é calculado pelo backend — o score
   nunca é digitado diretamente.
 
@@ -446,14 +458,18 @@ interface ExternalSessionResult {
 - Manter a interface `TutorProvider` de [D23](./DECISIONS.md#d23--integração-com-ia) como
   ponto de extensão futuro, sem implementação real.
 
-**5.4 — Score e consolidação ([D16](./DECISIONS.md#d16--cálculo-de-score), [D17](./DECISIONS.md#d17--estado-de-consolidação))**
+**5.4 — Score e consolidação ([D16](./DECISIONS.md#d16--cálculo-de-score), [D17](./DECISIONS.md#d17--estado-de-consolidação), [D49](./DECISIONS.md#d49--limiar-de-consolidação), [D50](./DECISIONS.md#d50--escada-de-intervalos-de-revisão))**
 
 - `completeSession` roda em transação ([D26](./DECISIONS.md#d26--operações-compostas)):
-  1. agrega as tentativas da sessão;
-  2. calcula o score (`correct = 1`, `partial = 0.5`, `wrong = 0`);
-  3. grava `score` e `completedAt` na sessão;
-  4. recalcula `consolidationState` e `nextRevision` do livro.
+  1. recusa sessões já concluídas;
+  2. persiste as tentativas (`questionId` obrigatório);
+  3. agrega as tentativas **persistidas** e calcula o score (`correct = 1`, `partial = 0.5`,
+     `wrong = 0`);
+  4. grava `mode`, `score` e `completedAt` na sessão;
+  5. recalcula `lastRevision`, `nextRevision` ([D50](./DECISIONS.md#d50--escada-de-intervalos-de-revisão))
+     e `consolidationState` ([D49](./DECISIONS.md#d49--limiar-de-consolidação)).
 - `archived` permanece um estado administrativo definido explicitamente pelo usuário.
+- Views leem `effectiveConsolidationState(book)` para aplicar a cláusula de recência.
 
 **5.5 — Histórico**
 
@@ -472,11 +488,11 @@ interface ExternalSessionResult {
 
 ### Critérios de conclusão
 
-- [ ] As três modalidades produzem `RevisionSession` com tentativas associadas.
-- [ ] Score nunca é enviado pelo cliente.
-- [ ] `consolidationState` é recalculado ao concluir sessão.
-- [ ] Histórico do livro reflete tentativas reais.
-- [ ] Sessão incompleta pode ser retomada.
+- [x] As três modalidades produzem `RevisionSession` com tentativas associadas.
+- [x] Score nunca é enviado pelo cliente.
+- [x] `consolidationState` é recalculado ao concluir sessão.
+- [x] Histórico do livro reflete tentativas reais.
+- [x] Sessão incompleta pode ser retomada (do início; sem `recordAttempt`).
 
 ### Riscos
 

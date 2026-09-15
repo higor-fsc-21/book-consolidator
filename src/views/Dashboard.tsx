@@ -1,3 +1,6 @@
+"use client"; /* Header */ /* Primary row */ /* Currently reading */ /* Recommended for revision */ /* Stats row */ /* Annual goal progress */ /* Recent revision timeline */ /* Vertical line */ /* Dot */ /* Content */
+
+import { useTransition } from "react";
 import Link from "next/link";
 import type { Book } from "@/domain/types";
 import { ANNUAL_GOAL, modeLabels } from "@/domain/constants";
@@ -10,6 +13,10 @@ import {
   readingProgress,
   daysSince,
   timeline,
+  pendingSessionsFor,
+  effectiveConsolidationState,
+  importanceLabel,
+  isRevisionDueToday,
 } from "@/domain/derived";
 import { startSessionAction } from "@/app/actions/sessions";
 
@@ -58,9 +65,12 @@ export function Dashboard({
   books: Book[];
   dateStr: string;
 }) {
+  const [, startTransition] = useTransition();
   const readingBook = getReadingBook(books);
   const completed = getCompletedBooks(books);
   const recommendedBook = getRecommendedBook(books);
+  const pending = pendingSessionsFor(books);
+  const bookById = new Map(books.map((b) => [b.id, b]));
 
   const daysSinceRevision = recommendedBook?.lastRevision
     ? daysSince(recommendedBook.lastRevision)
@@ -69,10 +79,13 @@ export function Dashboard({
   const progress = readingBook ? readingProgress(readingBook) : 0;
   const recAvgScore = recommendedBook ? avgScore(recommendedBook) : null;
   const revisionTimeline = timeline(books);
+  const recommendedDueToday = recommendedBook
+    ? isRevisionDueToday(recommendedBook)
+    : false;
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
-      {/* Header */}
+      {}
       <div>
         <div className="text-xs text-[#74777d] font-[500] uppercase tracking-widest mb-1">
           {dateStr}
@@ -88,9 +101,9 @@ export function Dashboard({
         </p>
       </div>
 
-      {/* Primary row */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Currently reading */}
+        {}
         {readingBook ? (
           <Link
             href={`/livros/${readingBook.id}`}
@@ -154,16 +167,18 @@ export function Dashboard({
           </div>
         )}
 
-        {/* Recommended for revision */}
+        {}
         {recommendedBook && (
           <div className="bg-white rounded-xl p-6 shadow-paper border-l-4 border-[#1a2e44] flex flex-col">
             <div className="flex items-center gap-2 mb-4">
               <div className="text-[10px] text-[#1a2e44] font-[600] uppercase tracking-widest">
                 Recomendado para revisão
               </div>
-              <div className="px-2 py-0.5 rounded-full bg-[#f2d492]/40 text-[#7a5a00] text-[10px] font-[500]">
-                hoje
-              </div>
+              {recommendedDueToday && (
+                <div className="px-2 py-0.5 rounded-full bg-[#f2d492]/40 text-[#7a5a00] text-[10px] font-[500]">
+                  hoje
+                </div>
+              )}
             </div>
 
             <div className="flex gap-4 flex-1">
@@ -205,7 +220,7 @@ export function Dashboard({
                     <span className="text-[#1a2e44]">•</span>
                     Marcado como{" "}
                     <span className="text-[#1b1c1c] font-[600]">
-                      muito importante
+                      {importanceLabel(recommendedBook).toLowerCase()}
                     </span>
                   </li>
                 </ul>
@@ -213,26 +228,60 @@ export function Dashboard({
             </div>
 
             <div className="mt-6">
-              <form
-                action={startSessionAction.bind(
-                  null,
-                  recommendedBook.id,
-                  undefined,
-                )}
+              <button
+                type="button"
+                onClick={() =>
+                  startTransition(async () => {
+                    await startSessionAction(recommendedBook.id);
+                  })
+                }
+                className="text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors"
               >
-                <button
-                  type="submit"
-                  className="text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors"
-                >
-                  Iniciar revisão
-                </button>
-              </form>
+                Iniciar revisão
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Stats row */}
+      {pending.length > 0 && (
+        <div className="bg-white rounded-xl p-6 shadow-paper border border-[#f2d492]/60">
+          <div className="text-[10px] text-[#7a5a00] font-[600] uppercase tracking-widest mb-4">
+            Sessões em andamento
+          </div>
+          <div className="space-y-3">
+            {pending.map((session) => {
+              const book = bookById.get(session.bookId);
+              if (!book) return null;
+              return (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-[500] text-[#1b1c1c] truncate">
+                      {book.title}
+                    </div>
+                    <div className="text-xs text-[#74777d] mt-0.5">
+                      {session.mode
+                        ? modeLabels[session.mode]
+                        : "Modalidade não definida"}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/sessoes/${session.id}`}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2e44] text-white font-[600] shrink-0"
+                  >
+                    Continuar
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {}
       <div className="grid grid-cols-3 gap-4">
         {[
           {
@@ -242,7 +291,7 @@ export function Dashboard({
           },
           {
             label: "Em consolidação",
-            value: `${books.filter((b) => b.consolidationState === "consolidating" && b.status === "completed").length}`,
+            value: `${books.filter((b) => effectiveConsolidationState(b) === "consolidating" && b.status === "completed").length}`,
             sub: "livros precisam de atenção",
           },
           {
@@ -268,7 +317,7 @@ export function Dashboard({
         ))}
       </div>
 
-      {/* Annual goal progress */}
+      {}
       <div className="bg-white rounded-xl p-6 shadow-paper">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[10px] text-[#74777d] font-[500] uppercase tracking-widest">
@@ -286,7 +335,7 @@ export function Dashboard({
         </div>
       </div>
 
-      {/* Recent revision timeline */}
+      {}
       <div className="bg-white rounded-xl p-6 shadow-paper">
         <div className="text-[10px] text-[#74777d] font-[500] uppercase tracking-widest mb-5">
           Histórico de revisões
@@ -298,7 +347,7 @@ export function Dashboard({
           </div>
         ) : (
           <div className="relative">
-            {/* Vertical line */}
+            {}
             <div className="absolute left-[15px] top-0 bottom-0 w-px bg-[#e4e2e2]" />
 
             <div className="space-y-0">
@@ -313,7 +362,7 @@ export function Dashboard({
 
                 return (
                   <div key={item.id} className="flex items-center gap-4 py-3">
-                    {/* Dot */}
+                    {}
                     <div className={`w-[30px] flex justify-center shrink-0`}>
                       <div
                         className={`w-2.5 h-2.5 rounded-full border-2 ${
@@ -324,7 +373,7 @@ export function Dashboard({
                       />
                     </div>
 
-                    {/* Content */}
+                    {}
                     <Link
                       href={`/livros/${item.book.id}`}
                       className="flex-1 flex items-center gap-3 text-left hover:bg-[#f5f3f3] rounded-lg px-3 py-2 -mx-3 transition-colors group"

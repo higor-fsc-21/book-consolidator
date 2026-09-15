@@ -1,5 +1,4 @@
 "use client"; /* Hero header */ /* Back */ /* Meta */ /* Progress */ /* Stats */ /* Actions */ /* Tabs */ /* Tab content */ /* Chapters */ /* Summary */ /* Revisions */ /* Bar chart */ /* Revision list */ /* Delete Confirmation Modal */
-
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,9 +12,11 @@ import {
 import {
   avgScore,
   coverGradient,
+  effectiveConsolidationState,
   lastPerformance,
-  revisionRecords,
-  type RevisionRecord,
+  pendingSessions,
+  sessionHistory,
+  type SessionHistoryEntry,
 } from "@/domain/derived";
 import { updateBook, startReading, deleteBook } from "@/app/actions/books";
 import {
@@ -23,7 +24,10 @@ import {
   toggleChapterRead,
   deleteChapter,
 } from "@/app/actions/chapters";
-import { startSessionAction } from "@/app/actions/sessions";
+import {
+  cancelSessionAction,
+  startSessionAction,
+} from "@/app/actions/sessions";
 import { BookModal } from "@/components/BookModal";
 
 function BookCover({
@@ -60,66 +64,131 @@ function BookCover({
   );
 }
 
-function RevisionRow({
-  revision,
-  index,
+function SessionHistoryRow({
+  entry,
+  onCancel,
+  cancelling,
 }: {
-  revision: RevisionRecord;
-  index: number;
+  entry: SessionHistoryEntry;
+  onCancel: (sessionId: string) => void;
+  cancelling: boolean;
 }) {
-  const scoreColor =
-    revision.score >= 80
+  const [open, setOpen] = useState(false);
+  const date = (entry.completedAt ?? entry.startedAt).toLocaleDateString(
+    "pt-BR",
+    { day: "2-digit", month: "short", year: "2-digit" },
+  );
+  const score = entry.score ?? 0;
+  const scoreColor = entry.pending
+    ? "text-[#74777d]"
+    : score >= 80
       ? "text-[#2a5628]"
-      : revision.score >= 60
+      : score >= 60
         ? "text-[#7a5a00]"
         : "text-[#ba1a1a]";
   const barColor =
-    revision.score >= 80
+    score >= 80
       ? "bg-[#8ba889]"
-      : revision.score >= 60
+      : score >= 60
         ? "bg-[#f2d492]"
         : "bg-[#ba1a1a]/60";
-  const date = new Date(revision.date).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-  });
 
   return (
-    <div className="flex items-center gap-4 py-3 border-b border-[#f0eeee] last:border-0">
-      <div className="text-[11px] font-mono text-[#74777d] w-5 text-center">
-        {index + 1}ª
-      </div>
-      <div className="text-xs text-[#74777d] font-mono w-20 shrink-0">
-        {date}
-      </div>
-      <div className="text-xs text-[#43474d] flex-1">
-        {modeLabels[revision.mode]}
-      </div>
-      <div className="w-24">
-        <div className="h-[2px] bg-[#e4e2e2] rounded-full overflow-hidden">
-          <div
-            className={`h-full ${barColor} rounded-full`}
-            style={{ width: `${revision.score}%` }}
-          />
-        </div>
-      </div>
-      <div
-        className={`text-sm font-mono font-[600] w-10 text-right ${scoreColor}`}
+    <div className="border-b border-[#f0eeee] last:border-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-4 py-3 text-left"
       >
-        {revision.score}%
-      </div>
-      {revision.difficultTopics.length > 0 && (
-        <div className="flex gap-1 flex-wrap max-w-[140px]">
-          {revision.difficultTopics.slice(0, 2).map((t) => (
-            <span
-              key={t}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-[#ba1a1a]/8 text-[#ba1a1a] font-mono truncate max-w-[70px]"
-              title={t}
+        <div className="text-xs text-[#74777d] font-mono w-20 shrink-0">
+          {date}
+        </div>
+        <div className="text-xs text-[#43474d] flex-1">
+          {entry.mode ? modeLabels[entry.mode] : "Modalidade não definida"}
+        </div>
+        {entry.pending ? (
+          <span className="text-[10px] font-[500] px-2 py-0.5 rounded-full bg-[#f2d492]/40 text-[#7a5a00]">
+            Em andamento
+          </span>
+        ) : (
+          <>
+            <div className="w-24">
+              <div className="h-[2px] bg-[#e4e2e2] rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${barColor} rounded-full`}
+                  style={{ width: `${score}%` }}
+                />
+              </div>
+            </div>
+            <div
+              className={`text-sm font-mono font-[600] w-10 text-right ${scoreColor}`}
             >
-              {t}
-            </span>
-          ))}
+              {score}%
+            </div>
+          </>
+        )}
+      </button>
+
+      {open && (
+        <div className="pb-4 pl-4 space-y-3">
+          {entry.pending && (
+            <div className="flex gap-2">
+              <Link
+                href={`/sessoes/${entry.id}`}
+                className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2e44] text-white font-[500]"
+              >
+                Continuar
+              </Link>
+              <button
+                type="button"
+                disabled={cancelling}
+                onClick={() => onCancel(entry.id)}
+                className="text-xs px-3 py-1.5 rounded-lg border border-[#ba1a1a]/30 text-[#ba1a1a] disabled:opacity-40"
+              >
+                Cancelar sessão
+              </button>
+            </div>
+          )}
+          {entry.attempts.length === 0 ? (
+            <div className="text-xs text-[#74777d]">
+              Nenhuma tentativa registrada ainda.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {entry.attempts.map((attempt) => (
+                <div
+                  key={attempt.id}
+                  className="flex items-start justify-between gap-3 text-xs"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[#1b1c1c] leading-relaxed">
+                      {attempt.questionText ?? "Pergunta removida"}
+                    </div>
+                    {attempt.chapterTitle && (
+                      <div className="text-[#74777d] mt-0.5">
+                        {attempt.chapterTitle}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className={`shrink-0 px-1.5 py-0.5 rounded font-mono ${
+                      attempt.performance === "correct"
+                        ? "bg-[#8ba889]/20 text-[#2a5628]"
+                        : attempt.performance === "partial"
+                          ? "bg-[#f2d492]/30 text-[#7a5a00]"
+                          : "bg-[#ba1a1a]/10 text-[#ba1a1a]"
+                    }`}
+                  >
+                    {attempt.performance === "correct"
+                      ? "✓"
+                      : attempt.performance === "partial"
+                        ? "◐"
+                        : "✗"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -131,15 +200,22 @@ interface NewChapterForm {
   description: string;
 }
 
+interface ChapterSaveData {
+  title: string;
+  description?: string;
+}
+
+interface AddChapterFormProps {
+  onSave: (data: ChapterSaveData) => void;
+  onCancel: () => void;
+  isPending?: boolean;
+}
+
 function AddChapterForm({
   onSave,
   onCancel,
   isPending = false,
-}: {
-  onSave: (data: { title: string; description?: string }) => void;
-  onCancel: () => void;
-  isPending?: boolean;
-}) {
+}: AddChapterFormProps) {
   const [form, setForm] = useState<NewChapterForm>({
     title: "",
     description: "",
@@ -243,7 +319,10 @@ export function BookDetail({ book }: { book: Book }) {
     0,
   );
   const avg = avgScore(book);
-  const revisions = revisionRecords(book);
+  const history = sessionHistory(book);
+  const completedHistory = history.filter((s) => !s.pending);
+  const pending = pendingSessions(book);
+  const consolidation = effectiveConsolidationState(book);
 
   const progress =
     book.totalChapters > 0 && readChapters > 0
@@ -312,14 +391,14 @@ export function BookDetail({ book }: { book: Book }) {
                 {book.status === "completed" && (
                   <span
                     className={`text-[11px] font-[500] px-2.5 py-1 rounded-full ${
-                      book.consolidationState === "consolidated"
+                      consolidation === "consolidated"
                         ? "bg-[#8ba889]/20 text-[#2a5628]"
-                        : book.consolidationState === "archived"
+                        : consolidation === "archived"
                           ? "bg-[#74777d]/10 text-[#74777d]"
                           : "bg-[#f2d492]/30 text-[#7a5a00]"
                     }`}
                   >
-                    {consolidationLabels[book.consolidationState]}
+                    {consolidationLabels[consolidation]}
                   </span>
                 )}
                 {book.year && (
@@ -372,11 +451,11 @@ export function BookDetail({ book }: { book: Book }) {
                     </div>
                   </div>
                 )}
-                {revisions.length > 0 && (
+                {history.length > 0 && (
                   <div>
                     <div className="text-[#74777d]">Revisões</div>
                     <div className="text-[#1b1c1c] font-[600] mt-0.5">
-                      {revisions.length}
+                      {history.length}
                     </div>
                   </div>
                 )}
@@ -509,7 +588,9 @@ export function BookDetail({ book }: { book: Book }) {
                               key={mode}
                               onClick={() => {
                                 setSessionOpen(false);
-                                startSessionAction(book.id, { mode });
+                                startTransition(async () => {
+                                  await startSessionAction(book.id, { mode });
+                                });
                               }}
                               className="w-full px-4 py-3.5 text-left hover:bg-[#f5f3f3] transition-colors border-b border-[#f0eeee] last:border-0"
                             >
@@ -546,7 +627,7 @@ export function BookDetail({ book }: { book: Book }) {
                 {
                   id: "revisions",
                   label: `Revisões${
-                    revisions.length > 0 ? ` (${revisions.length})` : ""
+                    history.length > 0 ? ` (${history.length})` : ""
                   }`,
                 },
               ] as const
@@ -748,9 +829,11 @@ export function BookDetail({ book }: { book: Book }) {
                         {hasQ && (
                           <button
                             onClick={() =>
-                              startSessionAction(book.id, {
-                                mode: "direct",
-                                chapterId: chapter.id,
+                              startTransition(async () => {
+                                await startSessionAction(book.id, {
+                                  mode: "direct",
+                                  chapterId: chapter.id,
+                                });
                               })
                             }
                             className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2e44]/8 text-[#1a2e44] hover:bg-[#1a2e44]/15 transition-colors font-[500]"
@@ -945,20 +1028,67 @@ export function BookDetail({ book }: { book: Book }) {
 
         {}
         {activeTab === "revisions" && (
-          <div>
-            {revisions.length > 0 ? (
+          <div className="space-y-6">
+            {pending.length > 0 && (
+              <div className="bg-white rounded-xl p-5 shadow-paper border border-[#f2d492]/60">
+                <div className="text-[10px] font-[600] text-[#7a5a00] uppercase tracking-widest mb-3">
+                  Em andamento
+                </div>
+                <div className="space-y-3">
+                  {pending.map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <div className="text-sm text-[#43474d]">
+                        {session.mode
+                          ? modeLabels[session.mode]
+                          : "Sessão iniciada"}{" "}
+                        ·{" "}
+                        {session.startedAt.toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "short",
+                        })}
+                      </div>
+                      <div className="flex gap-2">
+                        <Link
+                          href={`/sessoes/${session.id}`}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2e44] text-white font-[500]"
+                        >
+                          Continuar
+                        </Link>
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() =>
+                            startTransition(async () => {
+                              await cancelSessionAction(session.id);
+                            })
+                          }
+                          className="text-xs px-3 py-1.5 rounded-lg border border-[#ba1a1a]/30 text-[#ba1a1a] disabled:opacity-40"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {completedHistory.length > 0 ? (
               <>
-                {}
-                <div className="bg-white rounded-xl p-6 shadow-paper border border-[#e4e2e2] mb-6">
+                <div className="bg-white rounded-xl p-6 shadow-paper border border-[#e4e2e2]">
                   <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest mb-4">
                     Evolução do desempenho
                   </div>
                   <div className="flex items-end gap-4 h-20">
-                    {revisions.map((r) => {
+                    {[...completedHistory].reverse().map((r) => {
+                      const score = r.score ?? 0;
                       const barColor =
-                        r.score >= 80
+                        score >= 80
                           ? "bg-[#8ba889]"
-                          : r.score >= 60
+                          : score >= 60
                             ? "bg-[#f2d492]"
                             : "bg-[#ba1a1a]/60";
                       return (
@@ -967,7 +1097,7 @@ export function BookDetail({ book }: { book: Book }) {
                           className="flex flex-col items-center gap-1 flex-1"
                         >
                           <div className="text-[11px] font-mono text-[#1b1c1c] font-[500]">
-                            {r.score}%
+                            {score}%
                           </div>
                           <div
                             className="w-full bg-[#f0eeee] rounded-sm overflow-hidden"
@@ -976,24 +1106,27 @@ export function BookDetail({ book }: { book: Book }) {
                             <div
                               className={`w-full ${barColor} rounded-sm`}
                               style={{
-                                height: `${r.score}%`,
-                                marginTop: `${100 - r.score}%`,
+                                height: `${score}%`,
+                                marginTop: `${100 - score}%`,
                               }}
                             />
                           </div>
                           <div className="text-[10px] font-mono text-[#74777d] text-center">
-                            {new Date(r.date).toLocaleDateString("pt-BR", {
-                              day: "2-digit",
-                              month: "short",
-                            })}
+                            {(r.completedAt ?? r.startedAt).toLocaleDateString(
+                              "pt-BR",
+                              { day: "2-digit", month: "short" },
+                            )}
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                  {revisions.length >= 2 &&
+                  {completedHistory.length >= 2 &&
                     (() => {
-                      const diff = revisions.at(-1)!.score - revisions[0].score;
+                      const chronological = [...completedHistory].reverse();
+                      const diff =
+                        (chronological.at(-1)!.score ?? 0) -
+                        (chronological[0].score ?? 0);
                       return (
                         <div className="mt-4 pt-4 border-t border-[#f0eeee] text-sm text-[#74777d]">
                           Da primeira à última revisão:{" "}
@@ -1012,14 +1145,22 @@ export function BookDetail({ book }: { book: Book }) {
                     })()}
                 </div>
 
-                {}
                 <div className="bg-white rounded-xl p-5 shadow-paper border border-[#e4e2e2]">
-                  {revisions.map((r, i) => (
-                    <RevisionRow key={r.id} revision={r} index={i} />
+                  {history.map((entry) => (
+                    <SessionHistoryRow
+                      key={entry.id}
+                      entry={entry}
+                      cancelling={isPending}
+                      onCancel={(sessionId) =>
+                        startTransition(async () => {
+                          await cancelSessionAction(sessionId);
+                        })
+                      }
+                    />
                   ))}
                 </div>
               </>
-            ) : (
+            ) : pending.length === 0 ? (
               <div className="py-16 text-center">
                 <h3
                   style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
@@ -1032,14 +1173,18 @@ export function BookDetail({ book }: { book: Book }) {
                 </p>
                 {chaptersWithQuestions.length > 0 && (
                   <button
-                    onClick={() => startSessionAction(book.id)}
+                    onClick={() =>
+                      startTransition(async () => {
+                        await startSessionAction(book.id);
+                      })
+                    }
                     className="px-5 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
                   >
                     Iniciar primeira revisão
                   </button>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>

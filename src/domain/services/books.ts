@@ -1,9 +1,9 @@
-import "server-only";
-import { db } from "@/lib/db";
-import type { CreateBookInput, UpdateBookInput } from "@/lib/validators";
+import "server-only"
+import { db } from "@/lib/db"
+import type { CreateBookInput, UpdateBookInput } from "@/lib/validators"
 
-export type NewBookData = CreateBookInput;
-export type BookUpdateData = UpdateBookInput;
+export type NewBookData = CreateBookInput
+export type BookUpdateData = UpdateBookInput
 
 export async function addBook(userId: string, data: NewBookData) {
   return db.book.create({
@@ -32,7 +32,7 @@ export async function addBook(userId: string, data: NewBookData) {
         })),
       },
     },
-  });
+  })
 }
 
 export async function updateBook(
@@ -40,28 +40,28 @@ export async function updateBook(
   id: string,
   updates: BookUpdateData,
 ) {
-  await db.book.findFirstOrThrow({ where: { id, userId, deletedAt: null } });
+  await db.book.findFirstOrThrow({ where: { id, userId, deletedAt: null } })
   return db.book.update({
     where: { id },
     data: {
       ...updates,
       coverUrl: updates.coverUrl === "" ? null : updates.coverUrl,
     },
-  });
+  })
 }
 
 export async function softDeleteBook(userId: string, id: string) {
-  await db.book.findFirstOrThrow({ where: { id, userId, deletedAt: null } });
+  await db.book.findFirstOrThrow({ where: { id, userId, deletedAt: null } })
   return db.book.update({
     where: { id },
     data: { deletedAt: new Date() },
-  });
+  })
 }
 
 export async function startReading(userId: string, bookId: string) {
   const book = await db.book.findFirstOrThrow({
     where: { id: bookId, userId, deletedAt: null },
-  });
+  })
   return db.book.update({
     where: { id: bookId },
     data: {
@@ -69,5 +69,5 @@ export async function startReading(userId: string, bookId: string) {
       startDate: book.startDate ?? new Date(),
       currentChapter: book.currentChapter ?? 1,
     },
-  });
+  })
 }

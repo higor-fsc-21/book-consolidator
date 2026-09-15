@@ -1,5 +1,4 @@
 "use client"; /* Header */ /* Breadcrumb */ /* Content */ /* Summary */ /* Questions */ /* Chapter navigation */ /* Delete Chapter Confirmation Modal */
-
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -367,9 +366,11 @@ export function ChapterDetail({
               {hasQ && (
                 <button
                   onClick={() =>
-                    startSessionAction(book.id, {
-                      mode: "direct",
-                      chapterId: chapter.id,
+                    startTransition(async () => {
+                      await startSessionAction(book.id, {
+                        mode: "direct",
+                        chapterId: chapter.id,
+                      });
                     })
                   }
                   className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"

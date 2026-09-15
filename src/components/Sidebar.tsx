@@ -1,9 +1,8 @@
-"use client"; /* Brand */ /* Navigation */ /* User */
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { PLACEHOLDER_USER } from "@/domain/constants";
-import { logout } from "@/app/(auth)/login/actions";
+"use client" /* Brand */ /* Navigation */ /* User */
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { PLACEHOLDER_USER } from "@/domain/constants"
+import { logout } from "@/app/(auth)/login/actions"
 
 const navItems = [
   {
@@ -44,21 +43,20 @@ const navItems = [
       </svg>
     ),
   },
-];
+]
 
 interface SidebarProps {
   user?: {
-    name: string;
-    email: string;
-  };
+    name: string
+    email: string
+  }
 }
 
 export function Sidebar({ user }: SidebarProps) {
-  const pathname = usePathname();
-  const inLibrary =
-    pathname === "/biblioteca" || pathname.startsWith("/livros");
+  const pathname = usePathname()
+  const inLibrary = pathname === "/biblioteca" || pathname.startsWith("/livros")
 
-  const displayName = user?.name || PLACEHOLDER_USER.name;
+  const displayName = user?.name || PLACEHOLDER_USER.name
 
   return (
     <aside className="w-[220px] shrink-0 flex flex-col h-full border-r border-[#e4e2e2] bg-[#f5f3f3]">
@@ -92,7 +90,7 @@ export function Sidebar({ user }: SidebarProps) {
       {}
       <nav className="flex-1 p-3 space-y-0.5">
         {navItems.map(({ href, label, icon }) => {
-          const active = href === "/" ? pathname === "/" : inLibrary;
+          const active = href === "/" ? pathname === "/" : inLibrary
           return (
             <Link
               key={href}
@@ -106,7 +104,7 @@ export function Sidebar({ user }: SidebarProps) {
               {icon}
               {label}
             </Link>
-          );
+          )
         })}
       </nav>
 
@@ -152,5 +150,5 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </div>
     </aside>
-  );
+  )
 }

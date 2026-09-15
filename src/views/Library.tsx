@@ -1,5 +1,4 @@
 "use client"; /* Header */ /* Search + filter row */ /* Search */ /* Filters toggle */ /* Sort */ /* Sort direction */ /* Extended filter panel */ /* Status tabs */ /* Grid */
-
 import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,7 +9,11 @@ import type {
   ConsolidationState,
 } from "@/domain/types";
 import { statusLabels, consolidationLabels } from "@/domain/constants";
-import { avgScore, coverGradient } from "@/domain/derived";
+import {
+  avgScore,
+  coverGradient,
+  effectiveConsolidationState,
+} from "@/domain/derived";
 import { createBook } from "@/app/actions/books";
 import { BookModal } from "@/components/BookModal";
 
@@ -135,7 +138,7 @@ function BookCard({ book }: { book: Book }) {
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <StatusBadge status={book.status} />
             {book.status === "completed" && (
-              <ConsolidationBadge state={book.consolidationState} />
+              <ConsolidationBadge state={effectiveConsolidationState(book)} />
             )}
           </div>
 
@@ -234,7 +237,7 @@ export function Library({ books }: { books: Book[] }) {
       result = result.filter((b) => b.importance === importanceFilter);
     if (consolidationFilter !== "all")
       result = result.filter(
-        (b) => b.consolidationState === consolidationFilter,
+        (b) => effectiveConsolidationState(b) === consolidationFilter,
       );
 
     result.sort((a, b) => {
@@ -243,8 +246,8 @@ export function Library({ books }: { books: Book[] }) {
       else if (sortKey === "importance") diff = a.importance - b.importance;
       else if (sortKey === "consolidation")
         diff =
-          consolidationOrder[a.consolidationState] -
-          consolidationOrder[b.consolidationState];
+          consolidationOrder[effectiveConsolidationState(a)] -
+          consolidationOrder[effectiveConsolidationState(b)];
       else if (sortKey === "questions") {
         const qa = a.chapters.reduce((s, c) => s + c.questions.length, 0);
         const qb = b.chapters.reduce((s, c) => s + c.questions.length, 0);
@@ -264,7 +267,10 @@ export function Library({ books }: { books: Book[] }) {
     sortAsc,
   ]);
 
-  const statusTabs: Array<{ id: ReadingStatus | "all"; label: string }> = [
+  const statusTabs: Array<{
+    id: ReadingStatus | "all";
+    label: string;
+  }> = [
     { id: "all", label: "Todos" },
     { id: "reading", label: "Lendo" },
     { id: "completed", label: "Concluídos" },

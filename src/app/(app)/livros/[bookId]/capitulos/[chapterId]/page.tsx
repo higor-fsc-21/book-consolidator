@@ -6,7 +6,10 @@ import { getChapterWithQuestions } from "@/domain/queries/books";
 export default async function ChapterDetailPage({
   params,
 }: {
-  params: Promise<{ bookId: string; chapterId: string }>;
+  params: Promise<{
+    bookId: string;
+    chapterId: string;
+  }>;
 }) {
   const { bookId, chapterId } = await params;
   const user = await getCurrentUser();

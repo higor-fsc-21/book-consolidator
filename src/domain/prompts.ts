@@ -1,16 +1,14 @@
 import type { Book } from "./types";
 
-export const generateDirectPrompt = (
-  book: Book,
-  chapterIds?: string[],
-): string => {
-  const chapters = chapterIds
+const chaptersWithQuestions = (book: Book, chapterIds?: string[]) =>
+  chapterIds
     ? book.chapters.filter(
         (c) => chapterIds.includes(c.id) && c.questions.length > 0,
       )
     : book.chapters.filter((c) => c.questions.length > 0);
 
-  const sections = chapters
+const chapterSections = (book: Book, chapterIds?: string[]) =>
+  chaptersWithQuestions(book, chapterIds)
     .map((c) => {
       const qs = c.questions
         .map((q, i) => `Q${i + 1}: ${q.text}\nR: ${q.answer}`)
@@ -20,6 +18,12 @@ export const generateDirectPrompt = (
       }${qs}`;
     })
     .join("\n\n");
+
+export const generateDirectPrompt = (
+  book: Book,
+  chapterIds?: string[],
+): string => {
+  const sections = chapterSections(book, chapterIds);
 
   return `Você é um tutor especializado em aprendizagem por recuperação ativa.
 
@@ -51,15 +55,46 @@ ${sections}
 Quando estiver pronto, diga "Vamos começar a revisão!" e inicie com o primeiro capítulo.`;
 };
 
+export const generateGuidedPrompt = (
+  book: Book,
+  chapterIds?: string[],
+): string => {
+  const sections = chapterSections(book, chapterIds);
+
+  return `Você é um tutor que aplica a técnica de Feynman: o aluno deve explicar cada ideia com as próprias palavras, como se ensinasse a alguém que nunca leu o livro.
+
+LIVRO: ${book.title}
+AUTOR: ${book.author}
+
+INSTRUÇÕES:
+- Apresente o contexto do capítulo, depois peça que eu explique o conceito em voz alta (por escrito)
+- NÃO formule perguntas de memorização literal — peça explicações
+- Espere minha explicação antes de continuar
+- Avalie clareza, precisão e lacunas; peça analogias quando a explicação for vaga
+- Se eu usar jargão sem explicar, peça que eu simplifique
+- Continue até cobrir todos os conceitos listados abaixo
+
+RESULTADO FINAL OBRIGATÓRIO:
+Ao final de todas as questões, apresente um resumo estruturado assim:
+"RESULTADO DA SESSÃO:
+- Questões acertadas: [número]
+- Questões parcialmente corretas: [número]
+- Questões erradas: [número]
+- Score aproximado: [porcentagem]%
+- Principais lacunas identificadas: [lista]"
+
+ANOTAÇÕES:
+
+${sections}
+
+Quando estiver pronto, diga "Vamos começar a revisão!" e peça a primeira explicação.`;
+};
+
 export const generateRecognitionPrompt = (
   book: Book,
   chapterIds?: string[],
 ): string => {
-  const chapters = chapterIds
-    ? book.chapters.filter(
-        (c) => chapterIds.includes(c.id) && c.questions.length > 0,
-      )
-    : book.chapters.filter((c) => c.questions.length > 0);
+  const chapters = chaptersWithQuestions(book, chapterIds);
 
   const concepts = chapters
     .flatMap((c) => c.questions.map((q) => `- ${q.answer.split(".")[0]}.`))

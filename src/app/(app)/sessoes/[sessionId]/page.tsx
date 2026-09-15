@@ -19,11 +19,6 @@ export default async function SessionPage({
     : undefined;
 
   return (
-    <MemorizationSession
-      sessionId={session.id}
-      book={book}
-      chapter={chapter}
-      initialMode={session.mode ?? undefined}
-    />
+    <MemorizationSession session={session} book={book} chapter={chapter} />
   );
 }

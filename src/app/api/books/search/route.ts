@@ -1,42 +1,42 @@
-import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { GoogleBooksSearchQuerySchema } from "@/lib/validators";
+import { NextResponse } from "next/server"
+import { getCurrentUser } from "@/lib/auth"
+import { db } from "@/lib/db"
+import { GoogleBooksSearchQuerySchema } from "@/lib/validators"
 
 export interface GoogleBookItem {
-  googleBooksId: string;
-  title: string;
-  author: string;
-  year: number | null;
-  pages: number | null;
-  coverUrl: string | null;
-  alreadyInLibrary?: boolean;
+  googleBooksId: string
+  title: string
+  author: string
+  year: number | null
+  pages: number | null
+  coverUrl: string | null
+  alreadyInLibrary?: boolean
 }
 
 export async function GET(request: Request) {
-  let user;
+  let user
   try {
-    user = await getCurrentUser();
+    user = await getCurrentUser()
   } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { searchParams } = new URL(request.url);
+  const { searchParams } = new URL(request.url)
   const parsed = GoogleBooksSearchQuerySchema.safeParse({
     q: searchParams.get("q"),
     startIndex: searchParams.get("startIndex") ?? 0,
     maxResults: searchParams.get("maxResults") ?? 10,
-  });
+  })
 
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid search query", details: parsed.error.flatten() },
       { status: 400 },
-    );
+    )
   }
 
-  const { q, startIndex, maxResults } = parsed.data;
-  const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
+  const { q, startIndex, maxResults } = parsed.data
+  const apiKey = process.env.GOOGLE_BOOKS_API_KEY
 
   // Hybrid search: also search local books in user's library
   const localBooks = await db.book.findMany({
@@ -58,44 +58,44 @@ export async function GET(request: Request) {
       pages: true,
       coverUrl: true,
     },
-  });
+  })
 
   const localGoogleBookIds = new Set(
     localBooks.map((b) => b.googleBooksId).filter(Boolean) as string[],
-  );
+  )
 
-  let googleItems: GoogleBookItem[] = [];
-  let totalItems = 0;
+  let googleItems: GoogleBookItem[] = []
+  let totalItems = 0
 
   try {
-    const googleUrl = new URL("https://www.googleapis.com/books/v1/volumes");
-    googleUrl.searchParams.set("q", q);
-    googleUrl.searchParams.set("startIndex", String(startIndex));
-    googleUrl.searchParams.set("maxResults", String(maxResults));
+    const googleUrl = new URL("https://www.googleapis.com/books/v1/volumes")
+    googleUrl.searchParams.set("q", q)
+    googleUrl.searchParams.set("startIndex", String(startIndex))
+    googleUrl.searchParams.set("maxResults", String(maxResults))
     if (apiKey) {
-      googleUrl.searchParams.set("key", apiKey);
+      googleUrl.searchParams.set("key", apiKey)
     }
 
     const res = await fetch(googleUrl.toString(), {
       next: { revalidate: 3600 },
-    });
+    })
 
     if (res.ok) {
-      const data = await res.json();
-      totalItems = data.totalItems ?? 0;
+      const data = await res.json()
+      totalItems = data.totalItems ?? 0
       if (Array.isArray(data.items)) {
         googleItems = data.items.map((item: any) => {
-          const volumeInfo = item.volumeInfo || {};
+          const volumeInfo = item.volumeInfo || {}
           const rawYear = volumeInfo.publishedDate
             ? parseInt(volumeInfo.publishedDate.slice(0, 4), 10)
-            : null;
+            : null
           const thumbnail =
             volumeInfo.imageLinks?.thumbnail ||
             volumeInfo.imageLinks?.smallThumbnail ||
-            null;
+            null
           const secureCoverUrl = thumbnail
             ? thumbnail.replace(/^http:\/\//i, "https://")
-            : null;
+            : null
 
           return {
             googleBooksId: item.id,
@@ -109,12 +109,12 @@ export async function GET(request: Request) {
               : null,
             coverUrl: secureCoverUrl,
             alreadyInLibrary: localGoogleBookIds.has(item.id),
-          };
-        });
+          }
+        })
       }
     }
   } catch (err) {
-    console.error("Google Books search error:", err);
+    console.error("Google Books search error:", err)
   }
 
   return NextResponse.json({
@@ -123,5 +123,5 @@ export async function GET(request: Request) {
     totalItems,
     startIndex,
     maxResults,
-  });
+  })
 }

@@ -31,7 +31,10 @@ type RawQuestion = PrismaQuestion;
 type RawChapter = PrismaChapter & { questions: RawQuestion[] };
 export type RawAttempt = PrismaSessionAttempt;
 export type RawSession = PrismaRevisionSession & { attempts: RawAttempt[] };
-type RawBook = PrismaBook & { chapters: RawChapter[]; sessions: RawSession[] };
+type RawBook = PrismaBook & {
+  chapters: RawChapter[];
+  sessions: RawSession[];
+};
 
 // unstable_cache may round-trip Date fields through JSON, so every read is
 // normalized back into real Date instances regardless of cache hit/miss.

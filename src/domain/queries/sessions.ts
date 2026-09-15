@@ -8,7 +8,10 @@ import type { Book, RevisionSession } from "../types";
 export async function getSessionForUser(
   userId: string,
   sessionId: string,
-): Promise<{ session: RevisionSession; book: Book } | null> {
+): Promise<{
+  session: RevisionSession;
+  book: Book;
+} | null> {
   const raw = await unstable_cache(
     async (uid: string, id: string) =>
       db.revisionSession.findFirst({

@@ -1,6 +1,5 @@
-"use client";
-
-import { useState, useCallback } from "react";
+"use client"; /* Progress */ /* Chapter context */ /* Question */
+import { useState, useCallback, useTransition } from "react";
 import Link from "next/link";
 import type {
   Book,
@@ -8,14 +7,18 @@ import type {
   SessionMode,
   Question,
   Performance,
+  RevisionSession,
 } from "@/domain/types";
 import { modeLabels } from "@/domain/constants";
 import {
-  generateDirectPrompt,
+  generateGuidedPrompt,
   generateRecognitionPrompt,
 } from "@/domain/prompts";
 import { calculateScore } from "@/domain/derived";
-import { completeSessionAction } from "@/app/actions/sessions";
+import {
+  completeSessionAction,
+  startSessionAction,
+} from "@/app/actions/sessions";
 
 interface SessionResults {
   correct: number;
@@ -24,6 +27,35 @@ interface SessionResults {
   total: number;
   score: number;
 }
+
+const tallyPerformances = (
+  performances: Record<string, Performance>,
+): Omit<SessionResults, "score"> => {
+  const values = Object.values(performances);
+  const correct = values.filter((p) => p === "correct").length;
+  const partial = values.filter((p) => p === "partial").length;
+  const wrong = values.filter((p) => p === "wrong").length;
+  return { correct, partial, wrong, total: values.length };
+};
+
+const resultsFromSession = (session: RevisionSession): SessionResults => {
+  const correct = session.attempts.filter(
+    (a) => a.performance === "correct",
+  ).length;
+  const partial = session.attempts.filter(
+    (a) => a.performance === "partial",
+  ).length;
+  const wrong = session.attempts.filter(
+    (a) => a.performance === "wrong",
+  ).length;
+  return {
+    correct,
+    partial,
+    wrong,
+    total: session.attempts.length,
+    score: Math.round(session.score ?? 0),
+  };
+};
 
 function ModeCard({
   mode,
@@ -120,12 +152,12 @@ function DirectSession({
   book,
   onFinish,
 }: {
-  questions: Array<{ question: Question; chapter: Chapter }>;
+  questions: Array<{
+    question: Question;
+    chapter: Chapter;
+  }>;
   book: Book;
-  onFinish: (
-    results: SessionResults,
-    performances: Record<string, Performance>,
-  ) => void;
+  onFinish: (performances: Record<string, Performance>) => void;
 }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
@@ -145,25 +177,7 @@ function DirectSession({
         setCurrentIdx((i) => i + 1);
         setRevealed(false);
       } else {
-        const correct = Object.values(newPerf).filter(
-          (p) => p === "correct",
-        ).length;
-        const partial = Object.values(newPerf).filter(
-          (p) => p === "partial",
-        ).length;
-        const wrong = Object.values(newPerf).filter(
-          (p) => p === "wrong",
-        ).length;
-        const score = calculateScore({
-          correct,
-          partial,
-          wrong,
-          total: questions.length,
-        });
-        onFinish(
-          { correct, partial, wrong, total: questions.length, score },
-          newPerf,
-        );
+        onFinish(newPerf);
       }
     },
     [current, currentIdx, performances, questions.length, onFinish],
@@ -171,7 +185,7 @@ function DirectSession({
 
   return (
     <div className="max-w-2xl mx-auto px-8 py-8 space-y-5">
-      {/* Progress */}
+      {}
       <div>
         <div className="flex items-center justify-between text-xs font-mono text-[#74777d] mb-2">
           <span>
@@ -187,7 +201,7 @@ function DirectSession({
         </div>
       </div>
 
-      {/* Chapter context */}
+      {}
       <div className="bg-[#f5f3f3] rounded-xl px-5 py-4 border border-[#e4e2e2]">
         <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest mb-1">
           Contexto
@@ -203,7 +217,7 @@ function DirectSession({
         )}
       </div>
 
-      {/* Question */}
+      {}
       <div className="bg-white rounded-xl p-6 border border-[#e4e2e2] shadow-paper">
         <div className="text-[10px] font-[600] text-[#1a2e44] uppercase tracking-widest mb-3">
           Pergunta
@@ -285,26 +299,30 @@ function PromptDisplay({
   mode,
   book,
   chapter,
-  onSaveResult,
+  questions,
+  onSave,
+  isPending,
+  errorMessage,
 }: {
   mode: "guided" | "recognition";
   book: Book;
   chapter?: Chapter;
-  onSaveResult: (results: SessionResults) => void;
+  questions: Array<{
+    question: Question;
+    chapter: Chapter;
+  }>;
+  onSave: (performances: Record<string, Performance>) => void;
+  isPending: boolean;
+  errorMessage: string | null;
 }) {
   const [copied, setCopied] = useState(false);
   const [showResultForm, setShowResultForm] = useState(false);
-  const [resultForm, setResultForm] = useState({
-    correct: 0,
-    partial: 0,
-    wrong: 0,
-  });
-  const [resultSaved, setResultSaved] = useState<SessionResults | null>(null);
+  const [ratings, setRatings] = useState<Record<string, Performance>>({});
 
   const chapterIds = chapter ? [chapter.id] : undefined;
   const prompt =
     mode === "guided"
-      ? generateDirectPrompt(book, chapterIds)
+      ? generateGuidedPrompt(book, chapterIds)
       : generateRecognitionPrompt(book, chapterIds);
 
   const handleCopy = () => {
@@ -313,19 +331,25 @@ function PromptDisplay({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const totalQuestions =
-    resultForm.correct + resultForm.partial + resultForm.wrong;
-  const calcScore =
-    totalQuestions > 0
-      ? calculateScore({ ...resultForm, total: totalQuestions })
-      : 0;
+  const grouped = questions.reduce<
+    Array<{
+      chapter: Chapter;
+      questions: Question[];
+    }>
+  >((acc, item) => {
+    const last = acc[acc.length - 1];
+    if (last && last.chapter.id === item.chapter.id) {
+      last.questions.push(item.question);
+    } else {
+      acc.push({ chapter: item.chapter, questions: [item.question] });
+    }
+    return acc;
+  }, []);
 
-  const handleSaveResult = () => {
-    const result = { ...resultForm, total: totalQuestions, score: calcScore };
-    setResultSaved(result);
-    setShowResultForm(false);
-    onSaveResult(result);
-  };
+  const ratedCount = Object.keys(ratings).length;
+  const allRated = questions.length > 0 && ratedCount === questions.length;
+  const tally = tallyPerformances(ratings);
+  const previewScore = calculateScore(tally);
 
   const c =
     mode === "guided"
@@ -333,13 +357,13 @@ function PromptDisplay({
           title: "Explicação Guiada",
           emoji: "💬",
           instruction:
-            "Copie o prompt abaixo e cole em uma IA conversacional (Claude, ChatGPT, Gemini). A IA vai te testar com perguntas reformuladas. Ao final, ela apresentará um RESULTADO DA SESSÃO — use esses dados para registrar seu desempenho aqui.",
+            "Copie o prompt abaixo e cole em uma IA conversacional (Claude, ChatGPT, Gemini). A IA vai te testar com perguntas reformuladas. Ao final, registre o desempenho de cada pergunta abaixo.",
         }
       : {
           title: "Reconhecimento e Aplicação",
           emoji: "🔍",
           instruction:
-            "Copie o prompt e cole em uma IA. Você receberá situações práticas sem revelar o conceito testado. Ao final, a IA apresentará um RESULTADO DA SESSÃO — use esses dados para registrar seu desempenho aqui.",
+            "Copie o prompt e cole em uma IA. Você receberá situações práticas sem revelar o conceito testado. Ao final, registre o desempenho de cada pergunta abaixo.",
         };
 
   return (
@@ -357,7 +381,6 @@ function PromptDisplay({
         </div>
       </div>
 
-      {/* Instruction */}
       <div className="bg-[#1a2e44]/[0.05] border border-[#1a2e44]/20 rounded-xl p-5">
         <div className="text-[11px] font-[600] text-[#1a2e44] uppercase tracking-widest mb-2">
           Como usar
@@ -367,7 +390,6 @@ function PromptDisplay({
         </p>
       </div>
 
-      {/* Prompt */}
       <div className="bg-white rounded-xl border border-[#e4e2e2] shadow-paper overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#f0eeee]">
           <div className="text-[11px] font-[500] text-[#74777d] uppercase tracking-widest">
@@ -381,38 +403,7 @@ function PromptDisplay({
                 : "bg-[#f5f3f3] text-[#43474d] hover:text-[#1b1c1c] hover:bg-[#eae8e7]"
             }`}
           >
-            {copied ? (
-              <>
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>{" "}
-                Copiado!
-              </>
-            ) : (
-              <>
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                >
-                  <rect x="9" y="9" width="13" height="13" rx="2" />
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                </svg>{" "}
-                Copiar prompt
-              </>
-            )}
+            {copied ? "Copiado!" : "Copiar prompt"}
           </button>
         </div>
         <div className="p-5 max-h-72 overflow-y-auto bg-[#f9f7f4]">
@@ -422,172 +413,123 @@ function PromptDisplay({
         </div>
       </div>
 
-      {/* Result input section */}
-      {!resultSaved ? (
-        <div className="bg-white rounded-xl border border-[#e4e2e2] shadow-paper overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#f0eeee] flex items-center justify-between">
-            <div>
-              <div className="text-sm font-[600] text-[#1b1c1c]">
-                Registrar resultado
-              </div>
-              <div className="text-xs text-[#74777d] mt-0.5">
-                Após a sessão com a IA, registre seu desempenho
-              </div>
+      <div className="bg-white rounded-xl border border-[#e4e2e2] shadow-paper overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#f0eeee] flex items-center justify-between">
+          <div>
+            <div className="text-sm font-[600] text-[#1b1c1c]">
+              Registrar resultado
             </div>
-            {!showResultForm && (
-              <button
-                onClick={() => setShowResultForm(true)}
-                className="text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors"
-              >
-                Registrar
-              </button>
-            )}
+            <div className="text-xs text-[#74777d] mt-0.5">
+              Avalie cada pergunta após a sessão com a IA
+            </div>
           </div>
+          {!showResultForm && (
+            <button
+              onClick={() => setShowResultForm(true)}
+              className="text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors"
+            >
+              Registrar
+            </button>
+          )}
+        </div>
 
-          {showResultForm && (
-            <div className="p-5 space-y-5">
-              <p className="text-xs text-[#74777d] leading-relaxed">
-                Use o "RESULTADO DA SESSÃO" que a IA apresentou ao final para
-                preencher os campos abaixo.
-              </p>
-
-              <div className="grid grid-cols-3 gap-4">
-                {(
-                  [
-                    {
-                      key: "correct",
-                      label: "Acertei",
-                      color: "text-[#2a5628]",
-                      border: "border-[#8ba889]/40",
-                      bg: "bg-[#8ba889]/[0.04]",
-                    },
-                    {
-                      key: "partial",
-                      label: "Parcial",
-                      color: "text-[#7a5a00]",
-                      border: "border-[#f2d492]/60",
-                      bg: "bg-[#f2d492]/[0.08]",
-                    },
-                    {
-                      key: "wrong",
-                      label: "Errei",
-                      color: "text-[#ba1a1a]",
-                      border: "border-[#ba1a1a]/25",
-                      bg: "bg-[#ba1a1a]/[0.04]",
-                    },
-                  ] as const
-                ).map(({ key, label, color, border, bg }) => (
-                  <div key={key}>
-                    <label className={`text-xs font-[600] ${color} mb-2 block`}>
-                      {label}
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      className={`w-full px-3 py-3 text-center text-lg font-mono font-[600] ${color} border-2 ${border} ${bg} rounded-lg outline-none focus:border-current transition-colors`}
-                      value={resultForm[key]}
-                      onChange={(e) =>
-                        setResultForm((f) => ({
-                          ...f,
-                          [key]: Math.max(0, Number(e.target.value)),
-                        }))
-                      }
-                    />
+        {showResultForm && (
+          <div className="p-5 space-y-5">
+            {grouped.map(({ chapter: ch, questions: qs }) => (
+              <div key={ch.id} className="space-y-3">
+                <div className="text-[11px] font-[600] text-[#74777d] uppercase tracking-widest">
+                  Cap. {ch.number} · {ch.title}
+                </div>
+                {qs.map((q) => (
+                  <div
+                    key={q.id}
+                    className="border border-[#e4e2e2] rounded-xl p-4 space-y-3"
+                  >
+                    <p className="text-sm text-[#1b1c1c] leading-relaxed">
+                      {q.text}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(
+                        [
+                          ["wrong", "Errei"],
+                          ["partial", "Parcial"],
+                          ["correct", "Acertei"],
+                        ] as const
+                      ).map(([value, label]) => {
+                        const selected = ratings[q.id] === value;
+                        const styles =
+                          value === "correct"
+                            ? selected
+                              ? "border-[#8ba889] bg-[#8ba889]/15 text-[#2a5628]"
+                              : "border-[#8ba889]/30 text-[#2a5628]"
+                            : value === "partial"
+                              ? selected
+                                ? "border-[#f2d492] bg-[#f2d492]/25 text-[#7a5a00]"
+                                : "border-[#f2d492]/50 text-[#7a5a00]"
+                              : selected
+                                ? "border-[#ba1a1a] bg-[#ba1a1a]/10 text-[#ba1a1a]"
+                                : "border-[#ba1a1a]/25 text-[#ba1a1a]";
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() =>
+                              setRatings((prev) => ({ ...prev, [q.id]: value }))
+                            }
+                            className={`py-2 rounded-lg border text-xs font-[600] transition-colors ${styles}`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>
+            ))}
 
-              {totalQuestions > 0 && (
-                <div className="p-3 bg-[#f5f3f3] rounded-lg text-center">
-                  <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest mb-0.5">
-                    Score calculado
-                  </div>
-                  <div
-                    className={`text-2xl font-mono font-[600] ${
-                      calcScore >= 80
-                        ? "text-[#2a5628]"
-                        : calcScore >= 60
-                          ? "text-[#7a5a00]"
-                          : "text-[#ba1a1a]"
-                    }`}
-                  >
-                    {calcScore}%
-                  </div>
-                  <div className="text-xs text-[#74777d]">
-                    {totalQuestions} questões avaliadas
-                  </div>
+            {ratedCount > 0 && (
+              <div className="p-3 bg-[#f5f3f3] rounded-lg text-center">
+                <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest mb-0.5">
+                  Score estimado
                 </div>
-              )}
+                <div className="text-2xl font-mono font-[600] text-[#1b1c1c]">
+                  {previewScore}%
+                </div>
+                <div className="text-xs text-[#74777d]">
+                  {ratedCount} de {questions.length} avaliadas
+                </div>
+              </div>
+            )}
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowResultForm(false)}
-                  className="flex-1 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  disabled={totalQuestions === 0}
-                  onClick={handleSaveResult}
-                  className="flex-1 py-2.5 rounded-lg bg-[#1a2e44] text-white text-sm font-[600] hover:bg-[#2d4460] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Salvar resultado
-                </button>
+            {errorMessage && (
+              <div className="text-sm text-[#ba1a1a] bg-[#ba1a1a]/8 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">
+                {errorMessage}
               </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-[#8ba889]/30 shadow-paper p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-full bg-[#8ba889]/20 flex items-center justify-center">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#2a5628"
-                strokeWidth="2.5"
-                strokeLinecap="round"
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResultForm(false)}
+                disabled={isPending}
+                className="flex-1 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors disabled:opacity-40"
               >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <div>
-              <div className="text-sm font-[600] text-[#1b1c1c]">
-                Resultado registrado
-              </div>
-              <div className="text-xs text-[#74777d]">
-                Score:{" "}
-                <span className="font-[600] text-[#2a5628]">
-                  {resultSaved.score}%
-                </span>{" "}
-                · {resultSaved.total} questões
-              </div>
+                Cancelar
+              </button>
+              <button
+                disabled={!allRated || isPending}
+                onClick={() => onSave(ratings)}
+                className="flex-1 py-2.5 rounded-lg bg-[#1a2e44] text-white text-sm font-[600] hover:bg-[#2d4460] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isPending && (
+                  <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
+                Salvar resultado
+              </button>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center text-xs font-mono">
-            <div className="bg-[#8ba889]/10 rounded-lg p-2">
-              <div className="font-[600] text-[#2a5628] text-base">
-                {resultSaved.correct}
-              </div>
-              <div className="text-[#74777d]">acertei</div>
-            </div>
-            <div className="bg-[#f2d492]/15 rounded-lg p-2">
-              <div className="font-[600] text-[#7a5a00] text-base">
-                {resultSaved.partial}
-              </div>
-              <div className="text-[#74777d]">parcial</div>
-            </div>
-            <div className="bg-[#ba1a1a]/8 rounded-lg p-2">
-              <div className="font-[600] text-[#ba1a1a] text-base">
-                {resultSaved.wrong}
-              </div>
-              <div className="text-[#74777d]">errei</div>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -595,13 +537,17 @@ function PromptDisplay({
 function ResultsScreen({
   results,
   book,
-  onBack,
+  nextRevision,
+  onNewSession,
+  starting,
 }: {
   results: SessionResults;
   book: Book;
-  onBack: () => void;
+  nextRevision: Date | null;
+  onNewSession: () => void;
+  starting: boolean;
 }) {
-  const { correct, partial, wrong, total, score } = results;
+  const { correct, partial, wrong, score } = results;
   const message =
     score >= 90
       ? "Excelente domínio! O conhecimento está bem consolidado."
@@ -623,6 +569,14 @@ function ResultsScreen({
       : score >= 60
         ? "border-[#f2d492]/60"
         : "border-[#ba1a1a]/30";
+
+  const nextLabel = nextRevision
+    ? nextRevision.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
 
   return (
     <div className="max-w-2xl mx-auto px-8 py-8 space-y-8">
@@ -688,17 +642,15 @@ function ResultsScreen({
         <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest">
           Próximos passos
         </div>
-        {score < 80 && (
+        {nextLabel ? (
           <div className="text-sm text-[#43474d] flex gap-2">
-            <span className="text-[#1a2e44]">→</span>Revise novamente em{" "}
-            <strong className="text-[#1b1c1c] mx-1">7 dias</strong> para
-            reforçar o aprendizado.
+            <span className="text-[#1a2e44]">→</span>Próxima revisão sugerida em{" "}
+            <strong className="text-[#1b1c1c] mx-1">{nextLabel}</strong>.
           </div>
-        )}
-        {score >= 80 && (
+        ) : (
           <div className="text-sm text-[#43474d] flex gap-2">
-            <span className="text-[#2a5628]">→</span>Próxima revisão sugerida em{" "}
-            <strong className="text-[#1b1c1c] mx-1">30 dias</strong>.
+            <span className="text-[#1a2e44]">→</span>A próxima revisão será
+            agendada automaticamente.
           </div>
         )}
         {wrong + partial > 0 && (
@@ -711,9 +663,13 @@ function ResultsScreen({
 
       <div className="flex gap-3">
         <button
-          onClick={onBack}
-          className="flex-1 py-3 rounded-xl border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-all"
+          onClick={onNewSession}
+          disabled={starting}
+          className="flex-1 py-3 rounded-xl border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-all disabled:opacity-40 flex items-center justify-center gap-2"
         >
+          {starting && (
+            <span className="w-3 h-3 border-2 border-[#43474d] border-t-transparent rounded-full animate-spin" />
+          )}
           Nova sessão
         </button>
         <Link
@@ -728,23 +684,30 @@ function ResultsScreen({
 }
 
 export function MemorizationSession({
-  sessionId,
+  session,
   book,
   chapter,
-  initialMode,
 }: {
-  sessionId: string;
+  session: RevisionSession;
   book: Book;
   chapter?: Chapter;
-  initialMode?: SessionMode;
 }) {
+  const completed = session.completedAt !== null;
   const [selectedMode, setSelectedMode] = useState<SessionMode | null>(
-    initialMode ?? null,
+    session.mode ?? null,
   );
   const [step, setStep] = useState<"select" | "session" | "results">(
-    initialMode ? "session" : "select",
+    completed ? "results" : session.mode ? "session" : "select",
   );
-  const [results, setResults] = useState<SessionResults | null>(null);
+  const [results, setResults] = useState<SessionResults | null>(
+    completed ? resultsFromSession(session) : null,
+  );
+  const [nextRevision, setNextRevision] = useState<Date | null>(
+    book.nextRevision,
+  );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [starting, startNewTransition] = useTransition();
 
   const eligibleChapters = chapter
     ? [chapter]
@@ -757,54 +720,45 @@ export function MemorizationSession({
     c.questions.map((q) => ({ question: q, chapter: c })),
   );
 
-  const persistRevision = useCallback(
-    (
-      r: SessionResults,
-      mode: SessionMode,
-      performances?: Record<string, Performance>,
-    ) => {
-      const entries = performances
-        ? Object.entries(performances).map(([questionId, performance]) => ({
-            questionId,
-            performance,
-          }))
-        : (
-            [
-              ...Array(r.correct).fill("correct"),
-              ...Array(r.partial).fill("partial"),
-              ...Array(r.wrong).fill("wrong"),
-            ] as Performance[]
-          ).map((performance) => ({ questionId: null, performance }));
-      completeSessionAction(sessionId, mode, entries);
+  const persistSession = useCallback(
+    (mode: SessionMode, performances: Record<string, Performance>) => {
+      const entries = Object.entries(performances).map(
+        ([questionId, performance]) => ({ questionId, performance }),
+      );
+      setErrorMessage(null);
+      startTransition(async () => {
+        const res = await completeSessionAction(session.id, mode, entries);
+        if (!res.success) {
+          setErrorMessage(res.error);
+          return;
+        }
+        const tally = tallyPerformances(performances);
+        setResults({
+          ...tally,
+          score: res.data?.score ?? calculateScore(tally),
+        });
+        setNextRevision(res.data?.nextRevision ?? book.nextRevision);
+        setStep("results");
+      });
     },
-    [sessionId],
+    [book.nextRevision, session.id],
   );
 
   const handleFinish = useCallback(
-    (r: SessionResults, performances: Record<string, Performance>) => {
-      setResults(r);
-      setStep("results");
-      persistRevision(r, selectedMode ?? "direct", performances);
+    (performances: Record<string, Performance>) => {
+      persistSession(selectedMode ?? "direct", performances);
     },
-    [persistRevision, selectedMode],
+    [persistSession, selectedMode],
   );
 
-  const handleSaveResult = useCallback(
-    (r: SessionResults) => {
-      persistRevision(r, selectedMode ?? "guided");
-    },
-    [persistRevision, selectedMode],
-  );
-
-  const handleBack = () => {
-    setStep("select");
-    setSelectedMode(null);
-    setResults(null);
+  const handleNewSession = () => {
+    startNewTransition(async () => {
+      await startSessionAction(book.id);
+    });
   };
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
-      {/* Header */}
       <div className="bg-white border-b border-[#e4e2e2]">
         <div className="max-w-3xl mx-auto px-8 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -842,7 +796,6 @@ export function MemorizationSession({
         </div>
       </div>
 
-      {/* Select mode */}
       {step === "select" && (
         <div className="max-w-2xl mx-auto px-8 py-8">
           <div className="mb-8">
@@ -879,22 +832,7 @@ export function MemorizationSession({
                 )}
               </div>
 
-              {/* Scope info */}
               <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[#e4e2e2] text-xs text-[#74777d] font-[500] mb-6 shadow-paper-sm">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#1a2e44"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  className="shrink-0"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
                 {chapter
                   ? `Revisando: Cap. ${chapter.number} · ${allQuestions.length} pergunta${
                       allQuestions.length !== 1 ? "s" : ""
@@ -919,11 +857,25 @@ export function MemorizationSession({
       {step === "session" &&
         selectedMode === "direct" &&
         allQuestions.length > 0 && (
-          <DirectSession
-            questions={allQuestions}
-            book={book}
-            onFinish={handleFinish}
-          />
+          <>
+            {errorMessage && (
+              <div className="max-w-2xl mx-auto px-8 pt-4">
+                <div className="text-sm text-[#ba1a1a] bg-[#ba1a1a]/8 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">
+                  {errorMessage}
+                </div>
+              </div>
+            )}
+            {isPending && (
+              <div className="max-w-2xl mx-auto px-8 pt-4 text-sm text-[#74777d]">
+                Salvando sessão…
+              </div>
+            )}
+            <DirectSession
+              questions={allQuestions}
+              book={book}
+              onFinish={handleFinish}
+            />
+          </>
         )}
 
       {step === "session" &&
@@ -932,12 +884,23 @@ export function MemorizationSession({
             mode={selectedMode}
             book={book}
             chapter={chapter}
-            onSaveResult={handleSaveResult}
+            questions={allQuestions}
+            onSave={(performances) =>
+              persistSession(selectedMode, performances)
+            }
+            isPending={isPending}
+            errorMessage={errorMessage}
           />
         )}
 
       {step === "results" && results && (
-        <ResultsScreen results={results} book={book} onBack={handleBack} />
+        <ResultsScreen
+          results={results}
+          book={book}
+          nextRevision={nextRevision}
+          onNewSession={handleNewSession}
+          starting={starting}
+        />
       )}
     </div>
   );

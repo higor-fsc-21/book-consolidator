@@ -1,39 +1,35 @@
-"use client";
+"use client"
 // Step 0: Search (new books only), Step 1: Basic info, Step 2: Reading status & chapters
 
 // Search state
 
 // Debounced search on step 0
 /* Backdrop */ /* Modal */ /* Header */ /* Content */ /* Step 0: Google Books search */ /* Local matches */ /* Search results */ /* Pagination */ /* Footer */
-
-import { useState, useEffect } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react"
+import Image from "next/image"
 import type {
   Book,
   ReadingStatus,
   Importance,
   ConsolidationState,
-} from "@/domain/types";
-import { statusLabels } from "@/domain/constants";
-import type { GoogleBookItem } from "@/app/api/books/search/route";
+} from "@/domain/types"
+import { statusLabels } from "@/domain/constants"
+import type { GoogleBookItem } from "@/app/api/books/search/route"
 
-type BookFormData = Omit<
-  Book,
-  "id" | "userId" | "createdAt" | "updatedAt" | "chapters" | "sessions"
->;
+type BookFormData = Omit<Book, "id" | "userId" | "createdAt" | "updatedAt" | "chapters" | "sessions">
 
 const importanceLabels: Record<Importance, string> = {
   1: "Muito importante",
   2: "Importante",
   3: "Interessante",
-};
+}
 
 const statusOptions: ReadingStatus[] = [
   "want",
   "reading",
   "completed",
   "paused",
-];
+]
 
 export function BookModal({
   editBook,
@@ -42,21 +38,21 @@ export function BookModal({
   isPending = false,
   errorMessage,
 }: {
-  editBook?: Book;
-  onSave: (data: Partial<BookFormData>) => Promise<void> | void;
-  onClose: () => void;
-  isPending?: boolean;
-  errorMessage?: string | null;
+  editBook?: Book
+  onSave: (data: Partial<BookFormData>) => Promise<void> | void
+  onClose: () => void
+  isPending?: boolean
+  errorMessage?: string | null
 }) {
-  const isEdit = !!editBook;
-  const [step, setStep] = useState(isEdit ? 1 : 0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<GoogleBookItem[]>([]);
-  const [localMatches, setLocalMatches] = useState<any[]>([]);
-  const [startIndex, setStartIndex] = useState(0);
-  const [totalItems, setTotalItems] = useState(0);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const isEdit = !!editBook
+  const [step, setStep] = useState(isEdit ? 1 : 0)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<GoogleBookItem[]>([])
+  const [localMatches, setLocalMatches] = useState<any[]>([])
+  const [startIndex, setStartIndex] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
+  const [searchError, setSearchError] = useState<string | null>(null)
 
   const [form, setForm] = useState<BookFormData>({
     title: editBook?.title ?? "",
@@ -75,42 +71,42 @@ export function BookModal({
     summary: editBook?.summary ?? "",
     coverUrl: editBook?.coverUrl ?? null,
     googleBooksId: editBook?.googleBooksId ?? null,
-  });
+  })
 
   const set = <K extends keyof BookFormData>(key: K, value: BookFormData[K]) =>
-    setForm((f) => ({ ...f, [key]: value }));
+    setForm((f) => ({ ...f, [key]: value }))
   useEffect(() => {
-    if (step !== 0) return;
+    if (step !== 0) return
     if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setLocalMatches([]);
-      setTotalItems(0);
-      return;
+      setSearchResults([])
+      setLocalMatches([])
+      setTotalItems(0)
+      return
     }
 
     const timer = setTimeout(async () => {
-      setIsSearching(true);
-      setSearchError(null);
+      setIsSearching(true)
+      setSearchError(null)
       try {
         const res = await fetch(
           `/api/books/search?q=${encodeURIComponent(
             searchQuery.trim(),
           )}&startIndex=${startIndex}&maxResults=8`,
-        );
-        if (!res.ok) throw new Error("Falha ao buscar livros");
-        const data = await res.json();
-        setSearchResults(data.items || []);
-        setLocalMatches(data.localBooks || []);
-        setTotalItems(data.totalItems || 0);
+        )
+        if (!res.ok) throw new Error("Falha ao buscar livros")
+        const data = await res.json()
+        setSearchResults(data.items || [])
+        setLocalMatches(data.localBooks || [])
+        setTotalItems(data.totalItems || 0)
       } catch (err) {
-        setSearchError("Não foi possível buscar livros no momento.");
+        setSearchError("Não foi possível buscar livros no momento.")
       } finally {
-        setIsSearching(false);
+        setIsSearching(false)
       }
-    }, 400);
+    }, 400)
 
-    return () => clearTimeout(timer);
-  }, [searchQuery, startIndex, step]);
+    return () => clearTimeout(timer)
+  }, [searchQuery, startIndex, step])
 
   const selectGoogleBook = (book: GoogleBookItem) => {
     setForm((prev) => ({
@@ -121,21 +117,21 @@ export function BookModal({
       pages: book.pages,
       coverUrl: book.coverUrl,
       googleBooksId: book.googleBooksId,
-    }));
-    setStep(1);
-  };
+    }))
+    setStep(1)
+  }
 
-  const totalSteps = isEdit ? 2 : 3;
-  const currentStepNumber = isEdit ? step : step + 1;
+  const totalSteps = isEdit ? 2 : 3
+  const currentStepNumber = isEdit ? step : step + 1
 
   const canProceed = () => {
-    if (step === 1) return form.title.trim() && form.author.trim();
-    return true;
-  };
+    if (step === 1) return form.title.trim() && form.author.trim()
+    return true
+  }
 
   const handleSave = () => {
-    onSave(form);
-  };
+    onSave(form)
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -219,8 +215,8 @@ export function BookModal({
                   placeholder="Digite o título ou autor para buscar..."
                   value={searchQuery}
                   onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setStartIndex(0);
+                    setSearchQuery(e.target.value)
+                    setStartIndex(0)
                   }}
                   autoFocus
                 />
@@ -545,18 +541,16 @@ export function BookModal({
                     Estado de consolidação
                   </label>
                   <div className="flex gap-2">
-                    {(
-                      [
-                        "consolidating",
-                        "consolidated",
-                        "archived",
-                      ] as ConsolidationState[]
-                    ).map((state) => {
+                    {([
+                      "consolidating",
+                      "consolidated",
+                      "archived",
+                    ] as ConsolidationState[]).map((state) => {
                       const labels = {
                         consolidating: "Em consolidação",
                         consolidated: "Consolidado",
                         archived: "Arquivado",
-                      };
+                      }
                       return (
                         <button
                           key={state}
@@ -569,7 +563,7 @@ export function BookModal({
                         >
                           {labels[state]}
                         </button>
-                      );
+                      )
                     })}
                   </div>
                 </div>
@@ -612,15 +606,15 @@ export function BookModal({
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function Field({
   label,
   children,
 }: {
-  label: string;
-  children: React.ReactNode;
+  label: string
+  children: React.ReactNode
 }) {
   return (
     <div>
@@ -629,5 +623,5 @@ function Field({
       </label>
       {children}
     </div>
-  );
+  )
 }
