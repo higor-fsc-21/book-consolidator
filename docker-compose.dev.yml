@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-memora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-memora}
+      POSTGRES_DB: ${POSTGRES_DB:-memora}
+    ports:
+      - "${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - memora_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-memora} -d ${POSTGRES_DB:-memora}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      dockerfile: Dockerfile.dev
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+    command: ["sh", "-c", "pnpm exec prisma migrate deploy && pnpm dev"]
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next

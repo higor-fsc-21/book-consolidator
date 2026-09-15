@@ -1,0 +1,17 @@
+FROM node:22-alpine
+
+RUN apk add --no-cache libc6-compat openssl
+RUN corepack enable && corepack prepare pnpm@10.34.3 --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Seeds the node_modules/.next anonymous volumes; overwritten by the bind mount at runtime.
+COPY . .
+RUN pnpm exec prisma generate
+
+EXPOSE 3000
+
+CMD ["pnpm", "dev"]
