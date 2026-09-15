@@ -32,6 +32,9 @@ export const metadata: Metadata = {
   title: "Book Consolidator",
   description:
     "Transforme a leitura em conhecimento retido, explicável e aplicável através de sessões de consolidação espaçada.",
+  verification: {
+    google: "kHxZsMUtcFQGzo1aLfCt-8uelBztF4CH7R8seuKxvFM",
+  },
 };
 
 export default function RootLayout({
