@@ -1,86 +1,112 @@
-"use server";
+"use server"
 
-import { redirect } from "next/navigation";
-import { revalidatePath, revalidateTag } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
-import { booksTag, bookTag, sessionTag } from "@/lib/cache-tags";
-import type { SessionMode } from "@/domain/types";
-import * as sessionsService from "@/domain/services/sessions";
+import { redirect } from "next/navigation"
+import { revalidatePath, revalidateTag } from "next/cache"
+import { getCurrentUser } from "@/lib/auth"
+import { booksTag, bookTag, sessionTag } from "@/lib/cache-tags"
+import type { SessionMode } from "@/domain/types"
+import * as sessionsService from "@/domain/services/sessions"
+import { logger } from "@/lib/logger"
 import {
   CancelSessionInputSchema,
   CompleteSessionInputSchema,
   StartSessionInputSchema,
   UuidSchema,
   type ActionResult,
-} from "@/lib/validators";
+} from "@/lib/validators"
 
 function revalidateSessionSurfaces(
   userId: string,
   bookId: string,
   sessionId: string,
 ) {
-  revalidateTag(booksTag(userId));
-  revalidateTag(bookTag(bookId));
-  revalidateTag(sessionTag(sessionId));
-  revalidatePath(`/livros/${bookId}`);
-  revalidatePath(`/sessoes/${sessionId}`);
-  revalidatePath("/");
+  revalidateTag(booksTag(userId))
+  revalidateTag(bookTag(bookId))
+  revalidateTag(sessionTag(sessionId))
+  revalidatePath(`/livros/${bookId}`)
+  revalidatePath(`/sessoes/${sessionId}`)
+  revalidatePath("/")
 }
 
 export async function startSessionAction(
   bookId: string,
   options?: {
-    mode?: SessionMode;
-    chapterId?: string;
+    mode?: SessionMode
+    chapterId?: string
   },
 ): Promise<ActionResult<{ sessionId: string }> | void> {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser()
+  logger.info("session.start.requested", { userId: user.id, bookId: bookId })
   const parsed = StartSessionInputSchema.safeParse({
     bookId,
     chapterId: options?.chapterId,
     mode: options?.mode,
-  });
+  })
 
   if (!parsed.success) {
+    logger.info("session.start.validation_failed", {
+      userId: user.id,
+      issues: parsed.error.issues.map((issue) => issue.path.join(".")),
+    })
     return {
       success: false,
       error: "Dados de inicialização de sessão inválidos",
       fieldErrors: parsed.error.flatten().fieldErrors,
-    };
+    }
   }
 
-  const session = await sessionsService.startSession(user.id, parsed.data);
-  revalidateTag(booksTag(user.id));
-  revalidateTag(bookTag(parsed.data.bookId));
-  revalidatePath("/");
-  revalidatePath(`/livros/${parsed.data.bookId}`);
-  redirect(`/sessoes/${session.id}`);
+  try {
+    const session = await sessionsService.startSession(user.id, parsed.data)
+    logger.info("session.start.success", {
+      userId: user.id,
+      sessionId: session.id,
+      bookId: parsed.data.bookId,
+    })
+    revalidateTag(booksTag(user.id))
+    revalidateTag(bookTag(parsed.data.bookId))
+    revalidatePath("/")
+    revalidatePath(`/livros/${parsed.data.bookId}`)
+    redirect(`/sessoes/${session.id}`)
+  } catch (error) {
+    logger.error("session.start.failed", error, {
+      userId: user.id,
+      bookId: parsed.data.bookId,
+    })
+    return { success: false, error: "Erro ao iniciar sessão" }
+  }
 }
 
 export async function completeSessionAction(
   sessionId: string,
   mode: SessionMode,
   entries: unknown,
-): Promise<
-  ActionResult<{
-    score: number;
-    bookId: string;
-    nextRevision: Date;
-  }>
-> {
-  const user = await getCurrentUser();
-  const sessionIdParsed = UuidSchema.safeParse(sessionId);
+): Promise<ActionResult<{
+  score: number
+  bookId: string
+  nextRevision: Date
+}>> {
+  const user = await getCurrentUser()
+  const sessionIdParsed = UuidSchema.safeParse(sessionId)
   if (!sessionIdParsed.success) {
-    return { success: false, error: "ID de sessão inválido" };
+    logger.info("session.complete.validation_failed", {
+      userId: user.id,
+      reason: "invalid_session_id",
+    })
+    return { success: false, error: "ID de sessão inválido" }
   }
 
-  const parsed = CompleteSessionInputSchema.safeParse({ mode, entries });
+  const parsed = CompleteSessionInputSchema.safeParse({ mode, entries })
   if (!parsed.success) {
+    logger.info("session.complete.validation_failed", {
+      userId: user.id,
+      sessionId: sessionIdParsed.data,
+      issues: parsed.error.issues.map((issue) => issue.path.join(".")),
+    })
     return {
       success: false,
       error: "Dados de conclusão de sessão inválidos",
       fieldErrors: parsed.error.flatten().fieldErrors,
-    };
+    }
   }
 
   try {
@@ -90,36 +116,59 @@ export async function completeSessionAction(
         sessionIdParsed.data,
         parsed.data.mode,
         parsed.data.entries,
-      );
+      )
 
-    revalidateSessionSurfaces(user.id, bookId, sessionIdParsed.data);
-    return { success: true, data: { bookId, score, nextRevision } };
+    logger.info("session.complete.success", {
+      userId: user.id,
+      sessionId: sessionIdParsed.data,
+      bookId,
+      score,
+    })
+    revalidateSessionSurfaces(user.id, bookId, sessionIdParsed.data)
+    return { success: true, data: { bookId, score, nextRevision } }
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Erro ao concluir sessão";
-    return { success: false, error: message };
+      error instanceof Error ? error.message : "Erro ao concluir sessão"
+    logger.error("session.complete.failed", error, {
+      userId: user.id,
+      sessionId: sessionIdParsed.data,
+    })
+    return { success: false, error: message }
   }
 }
 
 export async function cancelSessionAction(
   sessionId: string,
 ): Promise<ActionResult<{ bookId: string }>> {
-  const user = await getCurrentUser();
-  const parsed = CancelSessionInputSchema.safeParse({ sessionId });
+  const user = await getCurrentUser()
+  const parsed = CancelSessionInputSchema.safeParse({ sessionId })
   if (!parsed.success) {
-    return { success: false, error: "ID de sessão inválido" };
+    logger.info("session.cancel.validation_failed", {
+      userId: user.id,
+      reason: "invalid_session_id",
+    })
+    return { success: false, error: "ID de sessão inválido" }
   }
 
   try {
     const { bookId } = await sessionsService.cancelSession(
       user.id,
       parsed.data.sessionId,
-    );
-    revalidateSessionSurfaces(user.id, bookId, parsed.data.sessionId);
-    return { success: true, data: { bookId } };
+    )
+    logger.info("session.cancel.success", {
+      userId: user.id,
+      sessionId: parsed.data.sessionId,
+      bookId,
+    })
+    revalidateSessionSurfaces(user.id, bookId, parsed.data.sessionId)
+    return { success: true, data: { bookId } }
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Erro ao cancelar sessão";
-    return { success: false, error: message };
+      error instanceof Error ? error.message : "Erro ao cancelar sessão"
+    logger.error("session.cancel.failed", error, {
+      userId: user.id,
+      sessionId: parsed.data.sessionId,
+    })
+    return { success: false, error: message }
   }
 }

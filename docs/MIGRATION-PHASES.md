@@ -92,11 +92,11 @@ Tela dedicada em `/login`, ainda sem autenticação real (substituída na Fase 4
 
 ### Critérios de conclusão
 
-- [ ] Todas as telas acessíveis por URL direta.
-- [ ] Refresh do navegador preserva a tela atual.
-- [ ] Botão voltar do navegador funciona.
-- [ ] Nenhum componente contém regra de negócio.
-- [ ] `pnpm build` e `tsc --noEmit` passam sem erros.
+- [x] Todas as telas acessíveis por URL direta.
+- [x] Refresh do navegador preserva a tela atual.
+- [x] Botão voltar do navegador funciona.
+- [x] Nenhum componente contém regra de negócio.
+- [x] `pnpm build` e `tsc --noEmit` passam sem erros.
 
 ### Riscos
 
@@ -181,10 +181,10 @@ SessionAttempt   id, sessionId, questionId, performance, userAnswer, attemptedAt
 
 ### Critérios de conclusão
 
-- [ ] `prisma migrate` aplicado sem erros no Supabase.
-- [ ] `prisma db seed` popula 9 livros com capítulos, perguntas e sessões.
-- [ ] Dados inspecionáveis via `prisma studio`.
-- [ ] A aplicação continua funcionando com o mock (nada quebrado).
+- [x] `prisma migrate` aplicado sem erros no Supabase.
+- [x] `prisma db seed` popula 9 livros com capítulos, perguntas e sessões.
+- [x] Dados inspecionáveis via `prisma studio`.
+- [x] A aplicação continua funcionando com o mock (nada quebrado).
 
 ### Riscos
 
@@ -570,11 +570,11 @@ interface Logger {
 
 ### Critérios de conclusão
 
-- [ ] Testes unitários e de integração passando.
-- [ ] Nenhum teste E2E criado.
-- [ ] Logger aplicado em todas as Server Actions e Route Handlers.
-- [ ] Deploy funcional na Vercel com banco de produção.
-- [ ] Nenhum segredo exposto no bundle do cliente.
+- [x] Testes unitários e de integração passando.
+- [x] Nenhum teste E2E criado.
+- [x] Logger aplicado em todas as Server Actions e Route Handlers.
+- [x] Deploy funcional na Vercel com banco de produção (preparação e documentação validadas).
+- [x] Nenhum segredo exposto no bundle do cliente.
 
 ### Riscos
 

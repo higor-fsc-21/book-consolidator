@@ -1,9 +1,9 @@
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar } from "@/components/Sidebar"
 
 export default function AppLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <div className="flex h-full bg-[#fbf9f8] overflow-hidden">
@@ -12,5 +12,5 @@ export default function AppLayout({
         {children}
       </main>
     </div>
-  );
+  )
 }

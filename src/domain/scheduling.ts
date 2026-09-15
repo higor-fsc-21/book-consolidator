@@ -1,39 +1,39 @@
-import type { ConsolidationState } from "./types";
+import type { ConsolidationState } from "./types"
 import {
   CONSOLIDATION_MIN_AVG_SCORE,
   CONSOLIDATION_MIN_SESSIONS,
   CONSOLIDATION_RECENCY_DAYS,
   REVISION_INTERVALS_DAYS,
-} from "./constants";
+} from "./constants"
 
-const MS_PER_DAY = 86_400_000;
+const MS_PER_DAY = 86_400_000
 
 /** Calendar day in UTC, matching Prisma `@db.Date` fields. */
 export const startOfUtcDay = (date: Date): Date =>
   new Date(
     Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
+  )
 
 export const addUtcDays = (date: Date, days: number): Date => {
-  const base = startOfUtcDay(date);
-  return new Date(base.getTime() + days * MS_PER_DAY);
-};
+  const base = startOfUtcDay(date)
+  return new Date(base.getTime() + days * MS_PER_DAY)
+}
 
 export const utcDayDiff = (later: Date, earlier: Date): number =>
   Math.floor(
     (startOfUtcDay(later).getTime() - startOfUtcDay(earlier).getTime()) /
       MS_PER_DAY,
-  );
+  )
 
 const laterDate = (a: Date, b: Date): Date =>
-  a.getTime() >= b.getTime() ? a : b;
+  a.getTime() >= b.getTime() ? a : b
 
 export interface NextRevisionInput {
-  endDate: Date | null;
-  firstCompletedSessionDate: Date | null;
-  completedAt: Date;
+  endDate: Date | null
+  firstCompletedSessionDate: Date | null
+  completedAt: Date
   /** Count of completed sessions including the one just finished. */
-  completedCount: number;
+  completedCount: number
 }
 
 /**
@@ -47,30 +47,29 @@ export function nextRevisionDate({
   completedAt,
   completedCount,
 }: NextRevisionInput): Date {
-  const completedDay = startOfUtcDay(completedAt);
-  const minDate = addUtcDays(completedDay, 1);
+  const completedDay = startOfUtcDay(completedAt)
+  const minDate = addUtcDays(completedDay, 1)
 
   if (completedCount > REVISION_INTERVALS_DAYS.length) {
-    return laterDate(addUtcDays(completedDay, 365), minDate);
+    return laterDate(addUtcDays(completedDay, 365), minDate)
   }
 
-  const offset =
-    REVISION_INTERVALS_DAYS[Math.max(0, completedCount - 1)] ?? 365;
+  const offset = REVISION_INTERVALS_DAYS[Math.max(0, completedCount - 1)] ?? 365
   const anchor = startOfUtcDay(
     endDate ?? firstCompletedSessionDate ?? completedAt,
-  );
-  return laterDate(addUtcDays(anchor, offset), minDate);
+  )
+  return laterDate(addUtcDays(anchor, offset), minDate)
 }
 
 export interface CompletedSessionScore {
-  score: number;
-  completedAt: Date;
+  score: number
+  completedAt: Date
 }
 
 export interface ConsolidationInput {
-  current: ConsolidationState;
-  completedSessions: CompletedSessionScore[];
-  now?: Date;
+  current: ConsolidationState
+  completedSessions: CompletedSessionScore[]
+  now?: Date
 }
 
 /**
@@ -83,23 +82,23 @@ export function consolidationStateFor({
   completedSessions,
   now = new Date(),
 }: ConsolidationInput): ConsolidationState {
-  if (current === "archived") return "archived";
+  if (current === "archived") return "archived"
 
   const completed = [...completedSessions].sort(
     (a, b) => a.completedAt.getTime() - b.completedAt.getTime(),
-  );
-  if (completed.length < CONSOLIDATION_MIN_SESSIONS) return "consolidating";
+  )
+  if (completed.length < CONSOLIDATION_MIN_SESSIONS) return "consolidating"
 
-  const lastThree = completed.slice(-CONSOLIDATION_MIN_SESSIONS);
+  const lastThree = completed.slice(-CONSOLIDATION_MIN_SESSIONS)
   const avg =
     lastThree.reduce((sum, session) => sum + session.score, 0) /
-    lastThree.length;
-  if (avg < CONSOLIDATION_MIN_AVG_SCORE) return "consolidating";
+    lastThree.length
+  if (avg < CONSOLIDATION_MIN_AVG_SCORE) return "consolidating"
 
-  const last = lastThree[lastThree.length - 1];
+  const last = lastThree[lastThree.length - 1]
   if (utcDayDiff(now, last.completedAt) > CONSOLIDATION_RECENCY_DAYS) {
-    return "consolidating";
+    return "consolidating"
   }
 
-  return "consolidated";
+  return "consolidated"
 }

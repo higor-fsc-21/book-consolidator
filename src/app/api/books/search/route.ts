@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { logger } from "@/lib/logger"
 import { GoogleBooksSearchQuerySchema } from "@/lib/validators"
 
 export interface GoogleBookItem {
@@ -17,7 +18,8 @@ export async function GET(request: Request) {
   let user
   try {
     user = await getCurrentUser()
-  } catch {
+  } catch (error) {
+    logger.error("books.search.unauthorized", error)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -29,6 +31,10 @@ export async function GET(request: Request) {
   })
 
   if (!parsed.success) {
+    logger.info("books.search.validation_failed", {
+      userId: user.id,
+      issues: parsed.error.issues.map((issue) => issue.path.join(".")),
+    })
     return NextResponse.json(
       { error: "Invalid search query", details: parsed.error.flatten() },
       { status: 400 },
@@ -37,6 +43,12 @@ export async function GET(request: Request) {
 
   const { q, startIndex, maxResults } = parsed.data
   const apiKey = process.env.GOOGLE_BOOKS_API_KEY
+  logger.info("books.search.requested", {
+    userId: user.id,
+    q,
+    startIndex,
+    maxResults,
+  })
 
   // Hybrid search: also search local books in user's library
   const localBooks = await db.book.findMany({
@@ -113,8 +125,8 @@ export async function GET(request: Request) {
         })
       }
     }
-  } catch (err) {
-    console.error("Google Books search error:", err)
+  } catch (error) {
+    logger.error("books.search.google_failed", error, { userId: user.id, q })
   }
 
   return NextResponse.json({

@@ -1,9 +1,8 @@
-"use client"; /* Header */ /* Primary row */ /* Currently reading */ /* Recommended for revision */ /* Stats row */ /* Annual goal progress */ /* Recent revision timeline */ /* Vertical line */ /* Dot */ /* Content */
-
-import { useTransition } from "react";
-import Link from "next/link";
-import type { Book } from "@/domain/types";
-import { ANNUAL_GOAL, modeLabels } from "@/domain/constants";
+"use client" /* Header */ /* Primary row */ /* Currently reading */ /* Recommended for revision */ /* Stats row */ /* Annual goal progress */ /* Recent revision timeline */ /* Vertical line */ /* Dot */ /* Content */
+import { useTransition } from "react"
+import Link from "next/link"
+import type { Book } from "@/domain/types"
+import { ANNUAL_GOAL, modeLabels } from "@/domain/constants"
 import {
   getReadingBook,
   getCompletedBooks,
@@ -17,18 +16,18 @@ import {
   effectiveConsolidationState,
   importanceLabel,
   isRevisionDueToday,
-} from "@/domain/derived";
-import { startSessionAction } from "@/app/actions/sessions";
+} from "@/domain/derived"
+import { startSessionAction } from "@/app/actions/sessions"
 
 function BookCover({
   gradient,
   size = "md",
 }: {
-  gradient: [string, string];
-  size?: "sm" | "md" | "lg";
+  gradient: [string, string]
+  size?: "sm" | "md" | "lg"
 }) {
   const dims =
-    size === "sm" ? "w-8 h-11" : size === "md" ? "w-12 h-17" : "w-20 h-28";
+    size === "sm" ? "w-8 h-11" : size === "md" ? "w-12 h-17" : "w-20 h-28"
   return (
     <div
       className={`${dims} rounded-[5px] shrink-0`}
@@ -39,7 +38,7 @@ function BookCover({
         minHeight: size === "sm" ? "44px" : size === "md" ? "68px" : "112px",
       }}
     />
-  );
+  )
 }
 
 function ScoreChip({ score }: { score: number }) {
@@ -48,40 +47,40 @@ function ScoreChip({ score }: { score: number }) {
       ? "text-[#2a5628] bg-[#8ba889]/20"
       : score >= 60
         ? "text-[#7a5a00] bg-[#f2d492]/30"
-        : "text-[#ba1a1a] bg-[#ba1a1a]/10";
+        : "text-[#ba1a1a] bg-[#ba1a1a]/10"
   return (
     <span
       className={`text-[11px] font-mono font-[500] px-2 py-0.5 rounded-full ${color}`}
     >
       {score}%
     </span>
-  );
+  )
 }
 
 export function Dashboard({
   books,
   dateStr,
 }: {
-  books: Book[];
-  dateStr: string;
+  books: Book[]
+  dateStr: string
 }) {
-  const [, startTransition] = useTransition();
-  const readingBook = getReadingBook(books);
-  const completed = getCompletedBooks(books);
-  const recommendedBook = getRecommendedBook(books);
-  const pending = pendingSessionsFor(books);
-  const bookById = new Map(books.map((b) => [b.id, b]));
+  const [, startTransition] = useTransition()
+  const readingBook = getReadingBook(books)
+  const completed = getCompletedBooks(books)
+  const recommendedBook = getRecommendedBook(books)
+  const pending = pendingSessionsFor(books)
+  const bookById = new Map(books.map((b) => [b.id, b]))
 
   const daysSinceRevision = recommendedBook?.lastRevision
     ? daysSince(recommendedBook.lastRevision)
-    : null;
+    : null
 
-  const progress = readingBook ? readingProgress(readingBook) : 0;
-  const recAvgScore = recommendedBook ? avgScore(recommendedBook) : null;
-  const revisionTimeline = timeline(books);
+  const progress = readingBook ? readingProgress(readingBook) : 0
+  const recAvgScore = recommendedBook ? avgScore(recommendedBook) : null
+  const revisionTimeline = timeline(books)
   const recommendedDueToday = recommendedBook
     ? isRevisionDueToday(recommendedBook)
-    : false;
+    : false
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
@@ -232,7 +231,7 @@ export function Dashboard({
                 type="button"
                 onClick={() =>
                   startTransition(async () => {
-                    await startSessionAction(recommendedBook.id);
+                    await startSessionAction(recommendedBook.id)
                   })
                 }
                 className="text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors"
@@ -251,8 +250,8 @@ export function Dashboard({
           </div>
           <div className="space-y-3">
             {pending.map((session) => {
-              const book = bookById.get(session.bookId);
-              if (!book) return null;
+              const book = bookById.get(session.bookId)
+              if (!book) return null
               return (
                 <div
                   key={session.id}
@@ -275,7 +274,7 @@ export function Dashboard({
                     Continuar
                   </Link>
                 </div>
-              );
+              )
             })}
           </div>
         </div>
@@ -352,13 +351,13 @@ export function Dashboard({
 
             <div className="space-y-0">
               {revisionTimeline.map((item, idx) => {
-                const revDate = new Date(item.date);
+                const revDate = new Date(item.date)
                 const dateLabel = revDate.toLocaleDateString("pt-BR", {
                   day: "2-digit",
                   month: "short",
                   year: "2-digit",
-                });
-                const isFirst = idx === 0;
+                })
+                const isFirst = idx === 0
 
                 return (
                   <div key={item.id} className="flex items-center gap-4 py-3">
@@ -398,12 +397,12 @@ export function Dashboard({
                       </div>
                     </Link>
                   </div>
-                );
+                )
               })}
             </div>
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }

@@ -1,18 +1,18 @@
-"use client"; /* Header */ /* Breadcrumb */ /* Content */ /* Summary */ /* Questions */ /* Chapter navigation */ /* Delete Chapter Confirmation Modal */
-import { useState, useTransition } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+"use client" /* Header */ /* Breadcrumb */ /* Content */ /* Summary */ /* Questions */ /* Chapter navigation */ /* Delete Chapter Confirmation Modal */
+import { useState, useTransition } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import type {
   Book,
   Chapter,
   Question,
   Difficulty,
   Performance,
-} from "@/domain/types";
-import { lastPerformance } from "@/domain/derived";
-import { createQuestion, deleteQuestion } from "@/app/actions/questions";
-import { deleteChapter } from "@/app/actions/chapters";
-import { startSessionAction } from "@/app/actions/sessions";
+} from "@/domain/types"
+import { lastPerformance } from "@/domain/derived"
+import { createQuestion, deleteQuestion } from "@/app/actions/questions"
+import { deleteChapter } from "@/app/actions/chapters"
+import { startSessionAction } from "@/app/actions/sessions"
 
 function QuestionCard({
   bookId,
@@ -20,20 +20,20 @@ function QuestionCard({
   index,
   lastPerf,
 }: {
-  bookId: string;
-  question: Question;
-  index: number;
-  lastPerf?: Performance;
+  bookId: string
+  question: Question
+  index: number
+  lastPerf?: Performance
 }) {
-  const [revealed, setRevealed] = useState(false);
-  const [isDeleting, startDeleteTransition] = useTransition();
+  const [revealed, setRevealed] = useState(false)
+  const [isDeleting, startDeleteTransition] = useTransition()
 
   const difficultyStyle = {
     hard: "bg-[#ba1a1a]/10 text-[#ba1a1a]",
     medium: "bg-[#f2d492]/30 text-[#7a5a00]",
     easy: "bg-[#8ba889]/20 text-[#2a5628]",
-  };
-  const difficultyLabel = { hard: "difícil", medium: "médio", easy: "fácil" };
+  }
+  const difficultyLabel = { hard: "difícil", medium: "médio", easy: "fácil" }
 
   return (
     <div className="bg-white rounded-xl border border-[#e4e2e2] shadow-paper-sm overflow-hidden">
@@ -62,8 +62,8 @@ function QuestionCard({
                       )
                     ) {
                       startDeleteTransition(async () => {
-                        await deleteQuestion(bookId, question.id);
-                      });
+                        await deleteQuestion(bookId, question.id)
+                      })
                     }
                   }}
                   title="Excluir pergunta"
@@ -143,13 +143,13 @@ function QuestionCard({
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 interface NewQuestionForm {
-  text: string;
-  answer: string;
-  difficulty: Difficulty;
+  text: string
+  answer: string
+  difficulty: Difficulty
 }
 
 function AddQuestionForm({
@@ -157,16 +157,16 @@ function AddQuestionForm({
   onCancel,
   isPending = false,
 }: {
-  onSave: (q: NewQuestionForm) => void;
-  onCancel: () => void;
-  isPending?: boolean;
+  onSave: (q: NewQuestionForm) => void
+  onCancel: () => void
+  isPending?: boolean
 }) {
   const [form, setForm] = useState<NewQuestionForm>({
     text: "",
     answer: "",
     difficulty: "medium",
-  });
-  const canSave = form.text.trim() && form.answer.trim();
+  })
+  const canSave = form.text.trim() && form.answer.trim()
 
   return (
     <div className="bg-white rounded-xl border-2 border-[#1a2e44]/30 shadow-paper p-5 space-y-4">
@@ -210,7 +210,7 @@ function AddQuestionForm({
         </label>
         <div className="flex gap-2">
           {(["easy", "medium", "hard"] as Difficulty[]).map((d) => {
-            const labels = { easy: "Fácil", medium: "Médio", hard: "Difícil" };
+            const labels = { easy: "Fácil", medium: "Médio", hard: "Difícil" }
             return (
               <button
                 key={d}
@@ -223,7 +223,7 @@ function AddQuestionForm({
               >
                 {labels[d]}
               </button>
-            );
+            )
           })}
         </div>
       </div>
@@ -248,38 +248,34 @@ function AddQuestionForm({
         </button>
       </div>
     </div>
-  );
+  )
 }
 
 export function ChapterDetail({
   book,
   chapter,
 }: {
-  book: Book;
-  chapter: Chapter;
+  book: Book
+  chapter: Chapter
 }) {
-  const router = useRouter();
-  const [addingQuestion, setAddingQuestion] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const [confirmDeleteChapter, setConfirmDeleteChapter] = useState(false);
-  const hasQ = chapter.questions.length > 0;
-  const prevChapter = book.chapters.find(
-    (c) => c.number === chapter.number - 1,
-  );
-  const nextChapter = book.chapters.find(
-    (c) => c.number === chapter.number + 1,
-  );
+  const router = useRouter()
+  const [addingQuestion, setAddingQuestion] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [confirmDeleteChapter, setConfirmDeleteChapter] = useState(false)
+  const hasQ = chapter.questions.length > 0
+  const prevChapter = book.chapters.find((c) => c.number === chapter.number - 1)
+  const nextChapter = book.chapters.find((c) => c.number === chapter.number + 1)
 
   const handleSaveQuestion = (form: NewQuestionForm) => {
     startTransition(async () => {
-      const res = await createQuestion(book.id, chapter.id, form);
+      const res = await createQuestion(book.id, chapter.id, form)
       if (res.success) {
-        setAddingQuestion(false);
+        setAddingQuestion(false)
       } else {
-        alert(res.error || "Erro ao criar pergunta");
+        alert(res.error || "Erro ao criar pergunta")
       }
-    });
-  };
+    })
+  }
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
@@ -370,7 +366,7 @@ export function ChapterDetail({
                       await startSessionAction(book.id, {
                         mode: "direct",
                         chapterId: chapter.id,
-                      });
+                      })
                     })
                   }
                   className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
@@ -578,13 +574,13 @@ export function ChapterDetail({
                 disabled={isPending}
                 onClick={() => {
                   startTransition(async () => {
-                    const res = await deleteChapter(book.id, chapter.id);
+                    const res = await deleteChapter(book.id, chapter.id)
                     if (res.success) {
-                      router.push(`/livros/${book.id}`);
+                      router.push(`/livros/${book.id}`)
                     } else {
-                      alert(res.error || "Erro ao excluir capítulo");
+                      alert(res.error || "Erro ao excluir capítulo")
                     }
-                  });
+                  })
                 }}
                 className="flex-1 py-2.5 rounded-lg bg-[#ba1a1a] text-white text-sm font-[600] hover:bg-[#ba1a1a]/90 transition-colors flex items-center justify-center gap-2"
               >
@@ -598,5 +594,5 @@ export function ChapterDetail({
         </div>
       )}
     </div>
-  );
+  )
 }

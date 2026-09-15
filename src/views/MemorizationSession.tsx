@@ -1,6 +1,6 @@
-"use client"; /* Progress */ /* Chapter context */ /* Question */
-import { useState, useCallback, useTransition } from "react";
-import Link from "next/link";
+"use client" /* Progress */ /* Chapter context */ /* Question */
+import { useState, useCallback, useTransition } from "react"
+import Link from "next/link"
 import type {
   Book,
   Chapter,
@@ -8,63 +8,61 @@ import type {
   Question,
   Performance,
   RevisionSession,
-} from "@/domain/types";
-import { modeLabels } from "@/domain/constants";
+} from "@/domain/types"
+import { modeLabels } from "@/domain/constants"
 import {
   generateGuidedPrompt,
   generateRecognitionPrompt,
-} from "@/domain/prompts";
-import { calculateScore } from "@/domain/derived";
+} from "@/domain/prompts"
+import { calculateScore } from "@/domain/derived"
 import {
   completeSessionAction,
   startSessionAction,
-} from "@/app/actions/sessions";
+} from "@/app/actions/sessions"
 
 interface SessionResults {
-  correct: number;
-  partial: number;
-  wrong: number;
-  total: number;
-  score: number;
+  correct: number
+  partial: number
+  wrong: number
+  total: number
+  score: number
 }
 
 const tallyPerformances = (
   performances: Record<string, Performance>,
 ): Omit<SessionResults, "score"> => {
-  const values = Object.values(performances);
-  const correct = values.filter((p) => p === "correct").length;
-  const partial = values.filter((p) => p === "partial").length;
-  const wrong = values.filter((p) => p === "wrong").length;
-  return { correct, partial, wrong, total: values.length };
-};
+  const values = Object.values(performances)
+  const correct = values.filter((p) => p === "correct").length
+  const partial = values.filter((p) => p === "partial").length
+  const wrong = values.filter((p) => p === "wrong").length
+  return { correct, partial, wrong, total: values.length }
+}
 
 const resultsFromSession = (session: RevisionSession): SessionResults => {
   const correct = session.attempts.filter(
     (a) => a.performance === "correct",
-  ).length;
+  ).length
   const partial = session.attempts.filter(
     (a) => a.performance === "partial",
-  ).length;
-  const wrong = session.attempts.filter(
-    (a) => a.performance === "wrong",
-  ).length;
+  ).length
+  const wrong = session.attempts.filter((a) => a.performance === "wrong").length
   return {
     correct,
     partial,
     wrong,
     total: session.attempts.length,
     score: Math.round(session.score ?? 0),
-  };
-};
+  }
+}
 
 function ModeCard({
   mode,
   selected,
   onSelect,
 }: {
-  mode: SessionMode;
-  selected: boolean;
-  onSelect: () => void;
+  mode: SessionMode
+  selected: boolean
+  onSelect: () => void
 }) {
   const config = {
     direct: {
@@ -88,9 +86,9 @@ function ModeCard({
         "Gere situações do mundo real e identifique o conceito por trás — sem que o tema seja revelado antecipadamente.",
       tag: "Via IA",
     },
-  } as const;
+  } as const
 
-  const c = config[mode];
+  const c = config[mode]
 
   return (
     <button
@@ -144,7 +142,7 @@ function ModeCard({
         </div>
       </div>
     </button>
-  );
+  )
 }
 
 function DirectSession({
@@ -153,35 +151,35 @@ function DirectSession({
   onFinish,
 }: {
   questions: Array<{
-    question: Question;
-    chapter: Chapter;
-  }>;
-  book: Book;
-  onFinish: (performances: Record<string, Performance>) => void;
+    question: Question
+    chapter: Chapter
+  }>
+  book: Book
+  onFinish: (performances: Record<string, Performance>) => void
 }) {
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [revealed, setRevealed] = useState(false);
+  const [currentIdx, setCurrentIdx] = useState(0)
+  const [revealed, setRevealed] = useState(false)
   const [performances, setPerformances] = useState<Record<string, Performance>>(
     {},
-  );
+  )
 
-  const current = questions[currentIdx];
-  const progress = Math.round(((currentIdx + 1) / questions.length) * 100);
+  const current = questions[currentIdx]
+  const progress = Math.round(((currentIdx + 1) / questions.length) * 100)
 
   const rate = useCallback(
     (perf: Performance) => {
-      const newPerf = { ...performances, [current.question.id]: perf };
-      setPerformances(newPerf);
+      const newPerf = { ...performances, [current.question.id]: perf }
+      setPerformances(newPerf)
 
       if (currentIdx < questions.length - 1) {
-        setCurrentIdx((i) => i + 1);
-        setRevealed(false);
+        setCurrentIdx((i) => i + 1)
+        setRevealed(false)
       } else {
-        onFinish(newPerf);
+        onFinish(newPerf)
       }
     },
     [current, currentIdx, performances, questions.length, onFinish],
-  );
+  )
 
   return (
     <div className="max-w-2xl mx-auto px-8 py-8 space-y-5">
@@ -292,7 +290,7 @@ function DirectSession({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 function PromptDisplay({
@@ -304,52 +302,50 @@ function PromptDisplay({
   isPending,
   errorMessage,
 }: {
-  mode: "guided" | "recognition";
-  book: Book;
-  chapter?: Chapter;
+  mode: "guided" | "recognition"
+  book: Book
+  chapter?: Chapter
   questions: Array<{
-    question: Question;
-    chapter: Chapter;
-  }>;
-  onSave: (performances: Record<string, Performance>) => void;
-  isPending: boolean;
-  errorMessage: string | null;
+    question: Question
+    chapter: Chapter
+  }>
+  onSave: (performances: Record<string, Performance>) => void
+  isPending: boolean
+  errorMessage: string | null
 }) {
-  const [copied, setCopied] = useState(false);
-  const [showResultForm, setShowResultForm] = useState(false);
-  const [ratings, setRatings] = useState<Record<string, Performance>>({});
+  const [copied, setCopied] = useState(false)
+  const [showResultForm, setShowResultForm] = useState(false)
+  const [ratings, setRatings] = useState<Record<string, Performance>>({})
 
-  const chapterIds = chapter ? [chapter.id] : undefined;
+  const chapterIds = chapter ? [chapter.id] : undefined
   const prompt =
     mode === "guided"
       ? generateGuidedPrompt(book, chapterIds)
-      : generateRecognitionPrompt(book, chapterIds);
+      : generateRecognitionPrompt(book, chapterIds)
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(prompt);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    navigator.clipboard.writeText(prompt)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
-  const grouped = questions.reduce<
-    Array<{
-      chapter: Chapter;
-      questions: Question[];
-    }>
-  >((acc, item) => {
-    const last = acc[acc.length - 1];
+  const grouped = questions.reduce<Array<{
+    chapter: Chapter
+    questions: Question[]
+  }>>((acc, item) => {
+    const last = acc[acc.length - 1]
     if (last && last.chapter.id === item.chapter.id) {
-      last.questions.push(item.question);
+      last.questions.push(item.question)
     } else {
-      acc.push({ chapter: item.chapter, questions: [item.question] });
+      acc.push({ chapter: item.chapter, questions: [item.question] })
     }
-    return acc;
-  }, []);
+    return acc
+  }, [])
 
-  const ratedCount = Object.keys(ratings).length;
-  const allRated = questions.length > 0 && ratedCount === questions.length;
-  const tally = tallyPerformances(ratings);
-  const previewScore = calculateScore(tally);
+  const ratedCount = Object.keys(ratings).length
+  const allRated = questions.length > 0 && ratedCount === questions.length
+  const tally = tallyPerformances(ratings)
+  const previewScore = calculateScore(tally)
 
   const c =
     mode === "guided"
@@ -364,7 +360,7 @@ function PromptDisplay({
           emoji: "🔍",
           instruction:
             "Copie o prompt e cole em uma IA. Você receberá situações práticas sem revelar o conceito testado. Ao final, registre o desempenho de cada pergunta abaixo.",
-        };
+        }
 
   return (
     <div className="max-w-3xl mx-auto px-8 py-8 space-y-6">
@@ -449,14 +445,12 @@ function PromptDisplay({
                       {q.text}
                     </p>
                     <div className="grid grid-cols-3 gap-2">
-                      {(
-                        [
-                          ["wrong", "Errei"],
-                          ["partial", "Parcial"],
-                          ["correct", "Acertei"],
-                        ] as const
-                      ).map(([value, label]) => {
-                        const selected = ratings[q.id] === value;
+                      {([
+                        ["wrong", "Errei"],
+                        ["partial", "Parcial"],
+                        ["correct", "Acertei"],
+                      ] as const).map(([value, label]) => {
+                        const selected = ratings[q.id] === value
                         const styles =
                           value === "correct"
                             ? selected
@@ -468,7 +462,7 @@ function PromptDisplay({
                                 : "border-[#f2d492]/50 text-[#7a5a00]"
                               : selected
                                 ? "border-[#ba1a1a] bg-[#ba1a1a]/10 text-[#ba1a1a]"
-                                : "border-[#ba1a1a]/25 text-[#ba1a1a]";
+                                : "border-[#ba1a1a]/25 text-[#ba1a1a]"
                         return (
                           <button
                             key={value}
@@ -480,7 +474,7 @@ function PromptDisplay({
                           >
                             {label}
                           </button>
-                        );
+                        )
                       })}
                     </div>
                   </div>
@@ -531,7 +525,7 @@ function PromptDisplay({
         )}
       </div>
     </div>
-  );
+  )
 }
 
 function ResultsScreen({
@@ -541,13 +535,13 @@ function ResultsScreen({
   onNewSession,
   starting,
 }: {
-  results: SessionResults;
-  book: Book;
-  nextRevision: Date | null;
-  onNewSession: () => void;
-  starting: boolean;
+  results: SessionResults
+  book: Book
+  nextRevision: Date | null
+  onNewSession: () => void
+  starting: boolean
 }) {
-  const { correct, partial, wrong, score } = results;
+  const { correct, partial, wrong, score } = results
   const message =
     score >= 90
       ? "Excelente domínio! O conhecimento está bem consolidado."
@@ -555,20 +549,20 @@ function ResultsScreen({
         ? "Bom desempenho. Continue revisando para consolidar."
         : score >= 60
           ? "Progresso razoável. Algumas lacunas a trabalhar."
-          : "Ainda há bastante espaço para crescer. Revise logo novamente.";
+          : "Ainda há bastante espaço para crescer. Revise logo novamente."
 
   const scoreColor =
     score >= 80
       ? "text-[#2a5628]"
       : score >= 60
         ? "text-[#7a5a00]"
-        : "text-[#ba1a1a]";
+        : "text-[#ba1a1a]"
   const scoreBorder =
     score >= 80
       ? "border-[#8ba889]/40"
       : score >= 60
         ? "border-[#f2d492]/60"
-        : "border-[#ba1a1a]/30";
+        : "border-[#ba1a1a]/30"
 
   const nextLabel = nextRevision
     ? nextRevision.toLocaleDateString("pt-BR", {
@@ -576,7 +570,7 @@ function ResultsScreen({
         month: "long",
         year: "numeric",
       })
-    : null;
+    : null
 
   return (
     <div className="max-w-2xl mx-auto px-8 py-8 space-y-8">
@@ -680,7 +674,7 @@ function ResultsScreen({
         </Link>
       </div>
     </div>
-  );
+  )
 }
 
 export function MemorizationSession({
@@ -688,74 +682,74 @@ export function MemorizationSession({
   book,
   chapter,
 }: {
-  session: RevisionSession;
-  book: Book;
-  chapter?: Chapter;
+  session: RevisionSession
+  book: Book
+  chapter?: Chapter
 }) {
-  const completed = session.completedAt !== null;
+  const completed = session.completedAt !== null
   const [selectedMode, setSelectedMode] = useState<SessionMode | null>(
     session.mode ?? null,
-  );
+  )
   const [step, setStep] = useState<"select" | "session" | "results">(
     completed ? "results" : session.mode ? "session" : "select",
-  );
+  )
   const [results, setResults] = useState<SessionResults | null>(
     completed ? resultsFromSession(session) : null,
-  );
+  )
   const [nextRevision, setNextRevision] = useState<Date | null>(
     book.nextRevision,
-  );
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [starting, startNewTransition] = useTransition();
+  )
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const [starting, startNewTransition] = useTransition()
 
   const eligibleChapters = chapter
     ? [chapter]
-    : book.chapters.filter((c) => c.questions.length > 0);
+    : book.chapters.filter((c) => c.questions.length > 0)
 
   const allQuestions: Array<{
-    question: Question;
-    chapter: Chapter;
+    question: Question
+    chapter: Chapter
   }> = eligibleChapters.flatMap((c) =>
     c.questions.map((q) => ({ question: q, chapter: c })),
-  );
+  )
 
   const persistSession = useCallback(
     (mode: SessionMode, performances: Record<string, Performance>) => {
       const entries = Object.entries(performances).map(
         ([questionId, performance]) => ({ questionId, performance }),
-      );
-      setErrorMessage(null);
+      )
+      setErrorMessage(null)
       startTransition(async () => {
-        const res = await completeSessionAction(session.id, mode, entries);
+        const res = await completeSessionAction(session.id, mode, entries)
         if (!res.success) {
-          setErrorMessage(res.error);
-          return;
+          setErrorMessage(res.error)
+          return
         }
-        const tally = tallyPerformances(performances);
+        const tally = tallyPerformances(performances)
         setResults({
           ...tally,
           score: res.data?.score ?? calculateScore(tally),
-        });
-        setNextRevision(res.data?.nextRevision ?? book.nextRevision);
-        setStep("results");
-      });
+        })
+        setNextRevision(res.data?.nextRevision ?? book.nextRevision)
+        setStep("results")
+      })
     },
     [book.nextRevision, session.id],
-  );
+  )
 
   const handleFinish = useCallback(
     (performances: Record<string, Performance>) => {
-      persistSession(selectedMode ?? "direct", performances);
+      persistSession(selectedMode ?? "direct", performances)
     },
     [persistSession, selectedMode],
-  );
+  )
 
   const handleNewSession = () => {
     startNewTransition(async () => {
-      await startSessionAction(book.id);
-    });
-  };
+      await startSessionAction(book.id)
+    })
+  }
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
@@ -903,5 +897,5 @@ export function MemorizationSession({
         />
       )}
     </div>
-  );
+  )
 }

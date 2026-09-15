@@ -97,5 +97,5 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
         </p>
       </div>
     </div>
-  );
+  )
 }
