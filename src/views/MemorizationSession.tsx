@@ -1,6 +1,7 @@
 "use client"; /* Progress */ /* Chapter context */ /* Question */
 import { useState, useCallback, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type {
   Book,
   Chapter,
@@ -17,6 +18,7 @@ import {
 import { calculateScore } from "@/domain/derived";
 import { parseAiEvaluationJson } from "@/domain/aiResult";
 import {
+  cancelSessionAction,
   completeSessionAction,
   startSessionAction,
 } from "@/app/actions/sessions";
@@ -785,8 +787,11 @@ export function MemorizationSession({
     book.nextRevision,
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [starting, startNewTransition] = useTransition();
+  const [canceling, startCancelTransition] = useTransition();
+  const router = useRouter();
 
   const eligibleChapters = chapter
     ? [chapter]
@@ -836,6 +841,18 @@ export function MemorizationSession({
     });
   };
 
+  const handleCancelSession = () => {
+    setCancelError(null);
+    startCancelTransition(async () => {
+      const res = await cancelSessionAction(session.id);
+      if (!res.success) {
+        setCancelError(res.error);
+        return;
+      }
+      router.push(`/livros/${book.id}`);
+    });
+  };
+
   return (
     <div className="min-h-full bg-[#fbf9f8]">
       <div className="bg-white border-b border-[#e4e2e2]">
@@ -867,12 +884,34 @@ export function MemorizationSession({
               </>
             )}
           </div>
-          <div className="text-[11px] font-[500] text-[#74777d]">
-            {step === "select" && "Escolher modalidade"}
-            {step === "session" && selectedMode && modeLabels[selectedMode]}
-            {step === "results" && "Resultado"}
+          <div className="flex items-center gap-3">
+            <div className="text-[11px] font-[500] text-[#74777d]">
+              {step === "select" && "Escolher modalidade"}
+              {step === "session" && selectedMode && modeLabels[selectedMode]}
+              {step === "results" && "Resultado"}
+            </div>
+            {step !== "results" && (
+              <button
+                type="button"
+                onClick={handleCancelSession}
+                disabled={canceling}
+                className="flex items-center gap-1.5 text-[11px] font-[500] px-3 py-1.5 rounded-lg border border-[#ba1a1a]/25 text-[#ba1a1a] hover:bg-[#ba1a1a]/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {canceling && (
+                  <span className="w-3 h-3 border-2 border-[#ba1a1a] border-t-transparent rounded-full animate-spin" />
+                )}
+                Cancelar sessão
+              </button>
+            )}
           </div>
         </div>
+        {cancelError && (
+          <div className="max-w-3xl mx-auto px-8 pb-4 -mt-1">
+            <div className="text-xs text-[#ba1a1a] bg-[#ba1a1a]/8 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">
+              {cancelError}
+            </div>
+          </div>
+        )}
       </div>
 
       {step === "select" && (

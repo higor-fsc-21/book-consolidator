@@ -1,5 +1,5 @@
 "use client"; /* Header */ /* Primary row */ /* Currently reading */ /* Recommended for revision */ /* Stats row */ /* Annual goal progress */ /* Recent revision timeline */ /* Vertical line */ /* Dot */ /* Content */
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Book } from "@/domain/types";
@@ -18,7 +18,11 @@ import {
   importanceLabel,
   isRevisionDueToday,
 } from "@/domain/derived";
-import { startSessionAction } from "@/app/actions/sessions";
+import { utcDayDiff } from "@/domain/scheduling";
+import {
+  cancelSessionAction,
+  startSessionAction,
+} from "@/app/actions/sessions";
 
 function BookCover({
   gradient,
@@ -93,6 +97,11 @@ export function Dashboard({
   dateStr: string;
 }) {
   const [isStartingSession, startTransition] = useTransition();
+  const [, startCancelTransition] = useTransition();
+  const [cancelingSessionId, setCancelingSessionId] = useState<string | null>(
+    null,
+  );
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const readingBook = getReadingBook(books);
   const completed = getCompletedBooks(books);
   const recommendedBook = getRecommendedBook(books);
@@ -109,6 +118,26 @@ export function Dashboard({
   const recommendedDueToday = recommendedBook
     ? isRevisionDueToday(recommendedBook)
     : false;
+  const daysUntilRevision =
+    recommendedBook?.nextRevision && !recommendedDueToday
+      ? utcDayDiff(recommendedBook.nextRevision, new Date())
+      : null;
+  const dueLabel =
+    daysUntilRevision === null || daysUntilRevision <= 0
+      ? null
+      : daysUntilRevision === 1
+        ? "amanhã"
+        : `em ${daysUntilRevision} dias`;
+
+  const handleCancelSession = (sessionId: string) => {
+    setCancelError(null);
+    setCancelingSessionId(sessionId);
+    startCancelTransition(async () => {
+      const res = await cancelSessionAction(sessionId);
+      if (!res.success) setCancelError(res.error);
+      setCancelingSessionId(null);
+    });
+  };
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
@@ -211,6 +240,11 @@ export function Dashboard({
                   hoje
                 </div>
               )}
+              {dueLabel && (
+                <div className="px-2 py-0.5 rounded-full bg-[#1a2e44]/10 text-[#1a2e44] text-[10px] font-[500]">
+                  {dueLabel}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-4 flex-1">
@@ -261,7 +295,7 @@ export function Dashboard({
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6 flex items-center gap-3">
               <button
                 type="button"
                 disabled={isStartingSession}
@@ -277,6 +311,12 @@ export function Dashboard({
                 )}
                 Iniciar revisão
               </button>
+              <Link
+                href={`/livros/${recommendedBook.id}`}
+                className="text-xs px-4 py-2 rounded-lg border border-[#c4c6cd] text-[#43474d] font-[600] hover:bg-[#f5f3f3] hover:text-[#1b1c1c] transition-colors"
+              >
+                Abrir livro
+              </Link>
             </div>
           </div>
         )}
@@ -291,6 +331,7 @@ export function Dashboard({
             {pending.map((session) => {
               const book = bookById.get(session.bookId);
               if (!book) return null;
+              const canceling = cancelingSessionId === session.id;
               return (
                 <div
                   key={session.id}
@@ -306,16 +347,34 @@ export function Dashboard({
                         : "Modalidade não definida"}
                     </div>
                   </div>
-                  <Link
-                    href={`/sessoes/${session.id}`}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2e44] text-white font-[600] shrink-0"
-                  >
-                    Continuar
-                  </Link>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleCancelSession(session.id)}
+                      disabled={canceling}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-[#ba1a1a]/25 text-[#ba1a1a] font-[600] hover:bg-[#ba1a1a]/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                    >
+                      {canceling && (
+                        <span className="w-3 h-3 border-2 border-[#ba1a1a] border-t-transparent rounded-full animate-spin" />
+                      )}
+                      Cancelar
+                    </button>
+                    <Link
+                      href={`/sessoes/${session.id}`}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2e44] text-white font-[600]"
+                    >
+                      Continuar
+                    </Link>
+                  </div>
                 </div>
               );
             })}
           </div>
+          {cancelError && (
+            <div className="mt-3 text-xs text-[#ba1a1a] bg-[#ba1a1a]/8 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">
+              {cancelError}
+            </div>
+          )}
         </div>
       )}
 

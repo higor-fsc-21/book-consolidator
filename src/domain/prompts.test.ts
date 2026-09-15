@@ -72,13 +72,64 @@ describe("prompt generation (D22)", () => {
     expect(prompt).toContain("Q1: What is the 1% rule?")
   })
 
-  it("generates recognition and application prompt", () => {
+  it("generates recognition and application prompt with the full annotation", () => {
     const prompt = generateRecognitionPrompt(mockBook)
     expect(prompt).toContain("LIVRO: Atomic Habits")
+    expect(prompt).toContain("AUTOR: James Clear")
     expect(prompt).toContain("situações do mundo real")
+    expect(prompt).toContain("CONCEITO 1 — Cap. 1: The Fundamentals")
+    expect(prompt).toContain("Pergunta anotada: What is the 1% rule?")
     expect(prompt).toContain(
-      "Small improvements compound into massive results over time",
+      "Anotação completa: Small improvements compound into massive results over time.",
     )
+  })
+
+  it("keeps the full answer text in the recognition prompt (no sentence slicing)", () => {
+    const multiSentence = structuredClone(mockBook)
+    multiSentence.chapters[0].questions[0].answer =
+      "First sentence. Second sentence carries the critical nuance."
+
+    const prompt = generateRecognitionPrompt(multiSentence)
+    expect(prompt).toContain("Second sentence carries the critical nuance.")
+  })
+
+  it("numbers questions continuously across chapters", () => {
+    const twoChapters = structuredClone(mockBook)
+    const [first] = twoChapters.chapters
+    twoChapters.chapters.push({
+      ...first,
+      id: "c2",
+      number: 2,
+      title: "The Second",
+      questions: [
+        {
+          ...first.questions[0],
+          id: "q2",
+          chapterId: "c2",
+          text: "What is habit stacking?",
+          answer: "Attach a new habit to an existing one.",
+        },
+      ],
+    })
+
+    const prompt = generateDirectPrompt(twoChapters)
+    expect(prompt).toContain("Q1: What is the 1% rule?")
+    expect(prompt).toContain("Q2: What is habit stacking?")
+
+    const recognition = generateRecognitionPrompt(twoChapters)
+    expect(recognition).toContain("CONCEITO 1 — Cap. 1: The Fundamentals")
+    expect(recognition).toContain("CONCEITO 2 — Cap. 2: The Second")
+  })
+
+  it("instructs the AI to stick strictly to the stored annotations", () => {
+    for (const prompt of [
+      generateDirectPrompt(mockBook),
+      generateGuidedPrompt(mockBook),
+      generateRecognitionPrompt(mockBook),
+    ]) {
+      expect(prompt).toContain("FIDELIDADE ÀS ANOTAÇÕES (OBRIGATÓRIO)")
+      expect(prompt).toContain("Baseie-se exclusivamente")
+    }
   })
 
   it("filters chapters when chapterIds is provided", () => {

@@ -55,8 +55,10 @@ export async function startSessionAction(
     }
   }
 
+  let sessionId: string
   try {
     const session = await sessionsService.startSession(user.id, parsed.data)
+    sessionId = session.id
     logger.info("session.start.success", {
       userId: user.id,
       sessionId: session.id,
@@ -66,7 +68,6 @@ export async function startSessionAction(
     revalidateTag(bookTag(parsed.data.bookId))
     revalidatePath("/")
     revalidatePath(`/livros/${parsed.data.bookId}`)
-    redirect(`/sessoes/${session.id}`)
   } catch (error) {
     logger.error("session.start.failed", error, {
       userId: user.id,
@@ -74,6 +75,10 @@ export async function startSessionAction(
     })
     return { success: false, error: "Erro ao iniciar sessão" }
   }
+
+  // `redirect()` throws a NEXT_REDIRECT control-flow error, so it must stay
+  // outside the try block or the catch above would swallow the navigation.
+  redirect(`/sessoes/${sessionId}`)
 }
 
 export async function completeSessionAction(
