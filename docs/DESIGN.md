@@ -1,91 +1,91 @@
 ---
-name: Memora
+name: Book Consolidator
 colors:
-  surface: '#fbf9f8'
-  surface-dim: '#dbd9d9'
-  surface-bright: '#fbf9f8'
-  surface-container-lowest: '#ffffff'
-  surface-container-low: '#f5f3f3'
-  surface-container: '#efeded'
-  surface-container-high: '#eae8e7'
-  surface-container-highest: '#e4e2e2'
-  on-surface: '#1b1c1c'
-  on-surface-variant: '#43474d'
-  inverse-surface: '#303030'
-  inverse-on-surface: '#f2f0f0'
-  outline: '#74777d'
-  outline-variant: '#c4c6cd'
-  surface-tint: '#4c6078'
-  primary: '#03192e'
-  on-primary: '#ffffff'
-  primary-container: '#1a2e44'
-  on-primary-container: '#8296b0'
-  inverse-primary: '#b4c8e4'
-  secondary: '#586059'
-  on-secondary: '#ffffff'
-  secondary-container: '#dde5db'
-  on-secondary-container: '#5e665f'
-  tertiary: '#181816'
-  on-tertiary: '#ffffff'
-  tertiary-container: '#2c2d2a'
-  on-tertiary-container: '#959490'
-  error: '#ba1a1a'
-  on-error: '#ffffff'
-  error-container: '#ffdad6'
-  on-error-container: '#93000a'
-  primary-fixed: '#d1e4ff'
-  primary-fixed-dim: '#b4c8e4'
-  on-primary-fixed: '#061d32'
-  on-primary-fixed-variant: '#35485f'
-  secondary-fixed: '#dde5db'
-  secondary-fixed-dim: '#c1c9bf'
-  on-secondary-fixed: '#161d17'
-  on-secondary-fixed-variant: '#414942'
-  tertiary-fixed: '#e4e2dd'
-  tertiary-fixed-dim: '#c8c6c2'
-  on-tertiary-fixed: '#1b1c19'
-  on-tertiary-fixed-variant: '#474744'
-  background: '#fbf9f8'
-  on-background: '#1b1c1c'
-  surface-variant: '#e4e2e2'
+  surface: "#fbf9f8"
+  surface-dim: "#dbd9d9"
+  surface-bright: "#fbf9f8"
+  surface-container-lowest: "#ffffff"
+  surface-container-low: "#f5f3f3"
+  surface-container: "#efeded"
+  surface-container-high: "#eae8e7"
+  surface-container-highest: "#e4e2e2"
+  on-surface: "#1b1c1c"
+  on-surface-variant: "#43474d"
+  inverse-surface: "#303030"
+  inverse-on-surface: "#f2f0f0"
+  outline: "#74777d"
+  outline-variant: "#c4c6cd"
+  surface-tint: "#4c6078"
+  primary: "#03192e"
+  on-primary: "#ffffff"
+  primary-container: "#1a2e44"
+  on-primary-container: "#8296b0"
+  inverse-primary: "#b4c8e4"
+  secondary: "#586059"
+  on-secondary: "#ffffff"
+  secondary-container: "#dde5db"
+  on-secondary-container: "#5e665f"
+  tertiary: "#181816"
+  on-tertiary: "#ffffff"
+  tertiary-container: "#2c2d2a"
+  on-tertiary-container: "#959490"
+  error: "#ba1a1a"
+  on-error: "#ffffff"
+  error-container: "#ffdad6"
+  on-error-container: "#93000a"
+  primary-fixed: "#d1e4ff"
+  primary-fixed-dim: "#b4c8e4"
+  on-primary-fixed: "#061d32"
+  on-primary-fixed-variant: "#35485f"
+  secondary-fixed: "#dde5db"
+  secondary-fixed-dim: "#c1c9bf"
+  on-secondary-fixed: "#161d17"
+  on-secondary-fixed-variant: "#414942"
+  tertiary-fixed: "#e4e2dd"
+  tertiary-fixed-dim: "#c8c6c2"
+  on-tertiary-fixed: "#1b1c19"
+  on-tertiary-fixed-variant: "#474744"
+  background: "#fbf9f8"
+  on-background: "#1b1c1c"
+  surface-variant: "#e4e2e2"
 typography:
   display-lg:
     fontFamily: Libre Caslon Text
     fontSize: 42px
-    fontWeight: '400'
-    lineHeight: '1.2'
+    fontWeight: "400"
+    lineHeight: "1.2"
     letterSpacing: -0.02em
   headline-md:
     fontFamily: Libre Caslon Text
     fontSize: 28px
-    fontWeight: '400'
-    lineHeight: '1.3'
+    fontWeight: "400"
+    lineHeight: "1.3"
   headline-sm:
     fontFamily: Libre Caslon Text
     fontSize: 22px
-    fontWeight: '400'
-    lineHeight: '1.4'
+    fontWeight: "400"
+    lineHeight: "1.4"
   body-lg:
     fontFamily: Hanken Grotesk
     fontSize: 18px
-    fontWeight: '400'
-    lineHeight: '1.6'
+    fontWeight: "400"
+    lineHeight: "1.6"
   body-md:
     fontFamily: Hanken Grotesk
     fontSize: 16px
-    fontWeight: '400'
-    lineHeight: '1.6'
+    fontWeight: "400"
+    lineHeight: "1.6"
   label-sm:
     fontFamily: Hanken Grotesk
     fontSize: 12px
-    fontWeight: '500'
-    lineHeight: '1'
+    fontWeight: "500"
+    lineHeight: "1"
     letterSpacing: 0.05em
   display-lg-mobile:
     fontFamily: Libre Caslon Text
     fontSize: 32px
-    fontWeight: '400'
-    lineHeight: '1.2'
+    fontWeight: "400"
+    lineHeight: "1.2"
 rounded:
   sm: 0.25rem
   DEFAULT: 0.5rem
@@ -120,13 +120,13 @@ The palette is rooted in organic, academic tones to foster long-term cognitive f
 
 This design system uses a sophisticated typographic pairing to balance tradition and utility.
 
-- **Headlines:** *Libre Caslon Text* provides a "bibliographic" feel, referencing classical literature and academic journals. It is used for page titles and section headers to establish a tone of authority.
-- **UI & Body:** *Hanken Grotesk* is used for all functional interface elements, labels, and body text. It offers high legibility and a modern, clean contrast to the serif headings.
+- **Headlines:** _Libre Caslon Text_ provides a "bibliographic" feel, referencing classical literature and academic journals. It is used for page titles and section headers to establish a tone of authority.
+- **UI & Body:** _Hanken Grotesk_ is used for all functional interface elements, labels, and body text. It offers high legibility and a modern, clean contrast to the serif headings.
 - **Hierarchy:** Use larger serif type for emotional moments (e.g., completing a lesson) and smaller, wider-tracked sans-serif for metadata and labels.
 
 ## Layout & Spacing
 
-The layout philosophy follows a **Fluid Grid** with expanded margins to emphasize "Quiet Luxury" through negative space. 
+The layout philosophy follows a **Fluid Grid** with expanded margins to emphasize "Quiet Luxury" through negative space.
 
 - **Grid:** 12-column grid for desktop, 4-column for mobile.
 - **Margins:** A minimum of 24px on mobile to prevent the content from feeling cramped.
@@ -143,7 +143,7 @@ Depth is conveyed through **Tonal Layers** and **Ambient Shadows** rather than s
 
 ## Shapes
 
-The shape language is **Rounded**, avoiding sharp edges to maintain the "Calm and Simple" narrative. 
+The shape language is **Rounded**, avoiding sharp edges to maintain the "Calm and Simple" narrative.
 
 - **Cards & Inputs:** 0.5rem (8px) radius is the standard.
 - **Large Containers:** 1rem (16px) radius for major sections or modal sheets.
@@ -153,13 +153,13 @@ The shape language is **Rounded**, avoiding sharp edges to maintain the "Calm an
 ## Components
 
 - **Cards:** White or Paper-toned background. No borders; use the ambient shadow defined in Elevation. Internal padding should be at least 24px.
-- **Buttons:** 
-  - *Primary:* Deep Intellectual Blue with white text. High contrast, elegant.
-  - *Secondary:* Transparent with a 1px Blue border or Sage Green background for "Progress" actions.
+- **Buttons:**
+  - _Primary:_ Deep Intellectual Blue with white text. High contrast, elegant.
+  - _Secondary:_ Transparent with a 1px Blue border or Sage Green background for "Progress" actions.
 - **Consolidation Chips:**
-  - *Em Consolidação:* Amber background, 10% opacity, with solid Amber text.
-  - *Consolidado:* Sage background, 10% opacity, with solid Sage text.
-  - *Arquivado:* Gray-blue background, 10% opacity, with Gray-blue text.
+  - _Em Consolidação:_ Amber background, 10% opacity, with solid Amber text.
+  - _Consolidado:_ Sage background, 10% opacity, with solid Sage text.
+  - _Arquivado:_ Gray-blue background, 10% opacity, with Gray-blue text.
 - **Progress Bar (Annual Goal):** A hairline-thin track (2px) in a light gray-blue. The active progress is a 2px solid Sage Green line. No heavy containers or percentages; use a small "label-sm" text above the bar (e.g., "75% DA META ANUAL").
 - **Input Fields:** Soft background (5% darker than paper) with a bottom-only border that thickens on focus.
 - **Lists:** Clean separation using whitespace or a subtle 0.5px horizontal rule in light gray-blue.

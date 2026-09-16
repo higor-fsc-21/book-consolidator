@@ -1,6 +1,6 @@
 # Decisões de Arquitetura — Migração para Next.js + PostgreSQL
 
-Registro das decisões tomadas para converter o Memora de um protótipo React/Vite com estado
+Registro das decisões tomadas para converter o Book Consolidator de um protótipo React/Vite com estado
 em memória para uma aplicação full-stack Next.js com PostgreSQL gerenciado.
 
 Cada decisão possui um identificador estável (`D01`…`D51`) referenciado por

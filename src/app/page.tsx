@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { BrandMark } from "@/components/BrandMark";
+import { FAST_PRINCIPLES } from "@/domain/fast";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://book-consolidator.vercel.app";
@@ -65,24 +66,6 @@ function Check() {
     </svg>
   );
 }
-
-const steps = [
-  [
-    "01",
-    "Lembrar",
-    "Feche o livro. Recupere o que ainda está vivo na sua cabeça, sem pistas.",
-  ],
-  [
-    "02",
-    "Explicar",
-    "Coloque a ideia em palavras simples. O que você consegue ensinar, você compreende.",
-  ],
-  [
-    "03",
-    "Reconhecer e aplicar",
-    "Encontre a ideia em uma situação concreta. Conhecimento útil pede um próximo passo.",
-  ],
-];
 
 const websiteJsonLd = {
   "@context": "https://schema.org",
@@ -211,33 +194,47 @@ export default function HomePage() {
             <div className="flex flex-col justify-between gap-8 border-b border-white/15 pb-10 md:flex-row md:items-end">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f2d492]">
-                  O método Book Consolidator
+                  O método FAST
                 </p>
                 <h2 className="mt-4 max-w-2xl font-display text-4xl leading-tight tracking-[-0.035em] sm:text-5xl">
-                  Três movimentos para fazer uma ideia ficar.
+                  Quatro princípios para fazer uma ideia ficar.
                 </h2>
               </div>
               <p className="max-w-xs text-sm leading-relaxed text-white/60">
-                Sessões curtas, perguntas certas e revisão espaçada no ritmo da
-                sua leitura.
+                Recuperação ativa, ângulos diferentes, revisão espaçada e
+                progresso visível para transformar leitura em conhecimento.
               </p>
             </div>
 
-            <div className="grid divide-y divide-white/15 md:grid-cols-3 md:divide-x md:divide-y-0">
-              {steps.map(([number, title, description]) => (
+            <div className="grid gap-px bg-white/15 sm:grid-cols-2 lg:grid-cols-4">
+              {FAST_PRINCIPLES.map((principle) => (
                 <article
-                  key={number}
-                  className="px-0 py-8 md:px-8 md:py-3 first:md:pl-0 last:md:pr-0"
+                  key={principle.letter}
+                  className="bg-[#203e47] px-6 py-8 lg:px-7"
                 >
-                  <span className="font-mono text-xs text-[#f2d492]">
-                    {number}
+                  <span className="font-mono text-3xl text-[#f2d492]">
+                    {principle.letter}
                   </span>
-                  <h3 className="mt-12 font-display text-3xl tracking-[-0.025em]">
-                    {title}
+                  <h3 className="mt-8 font-display text-2xl tracking-[-0.025em]">
+                    {principle.name}
                   </h3>
-                  <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/60">
-                    {description}
+                  <p className="mt-4 text-sm leading-relaxed text-white/60">
+                    {principle.description}
                   </p>
+                  <div className="mt-7 border-t border-white/15 pt-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#f2d492]">
+                      Base de estudo
+                    </p>
+                    <p className="mt-2 text-sm leading-snug text-white/85">
+                      {principle.book}
+                    </p>
+                    <p className="mt-1 text-xs text-white/50">
+                      {principle.authors}
+                    </p>
+                    <p className="mt-3 text-xs leading-relaxed text-white/60">
+                      {principle.evidence}
+                    </p>
+                  </div>
                 </article>
               ))}
             </div>

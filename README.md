@@ -1,6 +1,15 @@
-# Memora — Sistema Pessoal de Consolidação do Conhecimento
+# Book Consolidator — Sistema Pessoal de Consolidação do Conhecimento
 
-Memora é uma aplicação projetada para transformar leituras em conhecimento retido, explicável e aplicável a longo prazo, por meio de sessões estruturadas de consolidação espaçada.
+Book Consolidator é uma aplicação projetada para transformar leituras em conhecimento retido, explicável e aplicável a longo prazo, por meio de sessões estruturadas de consolidação espaçada.
+
+## Método FAST
+
+- **F — Forced Retrieval**: reconstrua as ideias antes de consultar as respostas.
+- **A — Alternating Approaches**: alterne entre as modalidades Direct, Guided e Practical.
+- **S — Spaced Repetition**: revise em intervalos cada vez maiores e otimizados.
+- **T — Tracking**: acompanhe visualmente seu progresso e a consolidação do conhecimento.
+
+As bases do método são _Make It Stick_ e _A Mind for Numbers_, de Peter C. Brown, Henry L. Roediger III, Mark A. McDaniel e Barbara Oakley.
 
 ## Filosofia & Níveis de Consolidação
 

@@ -35,6 +35,9 @@ start:
 up:
 	$(COMPOSE) up --build
 
+rebuild-app:
+	$(COMPOSE) up --build -d app
+
 down:
 	$(COMPOSE) down
 

@@ -11,6 +11,7 @@ import type {
   RevisionSession,
 } from "@/domain/types";
 import { modeLabels } from "@/domain/constants";
+import { FAST_PRINCIPLES } from "@/domain/fast";
 import {
   generateGuidedPrompt,
   generateRecognitionPrompt,
@@ -147,6 +148,55 @@ function ModeCard({
         </div>
       </div>
     </button>
+  );
+}
+
+function FastMethodOverview() {
+  return (
+    <section className="mb-8 rounded-xl border border-[#e4e2e2] bg-white p-5 shadow-paper-sm">
+      <div className="mb-5">
+        <div className="text-[10px] font-[600] uppercase tracking-widest text-[#1a2e44]">
+          Método FAST
+        </div>
+        <h2
+          style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
+          className="mt-2 text-2xl text-[#1b1c1c]"
+        >
+          Quatro princípios para consolidar o que você lê.
+        </h2>
+        <p className="mt-2 text-xs leading-relaxed text-[#74777d]">
+          Esta sessão combina recuperação, diferentes formas de prática, revisão
+          espaçada e acompanhamento do progresso.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {FAST_PRINCIPLES.map((principle) => (
+          <article
+            key={principle.letter}
+            className="rounded-lg border border-[#e4e2e2] bg-[#f9f7f4] p-4"
+          >
+            <div className="flex items-start gap-3">
+              <span className="font-mono text-xl font-[600] text-[#8d6f3e]">
+                {principle.letter}
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-[600] text-[#1b1c1c]">
+                  {principle.name}
+                </h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-[#43474d]">
+                  {principle.description}
+                </p>
+                <p className="mt-3 text-[11px] leading-snug text-[#74777d]">
+                  <span className="font-[600] text-[#1a2e44]">Base:</span>{" "}
+                  {principle.book} · {principle.authors}
+                </p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -916,6 +966,7 @@ export function MemorizationSession({
 
       {step === "select" && (
         <div className="max-w-2xl mx-auto px-8 py-8">
+          <FastMethodOverview />
           <div className="mb-8">
             <h1
               style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}

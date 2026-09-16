@@ -1,4 +1,4 @@
-# Memora — Personal Knowledge Consolidation System
+# Book Consolidator — Personal Knowledge Consolidation System
 
 Application for readers to transform reading into retained, explainable, and applicable knowledge through spaced consolidation sessions.
 
@@ -15,6 +15,17 @@ Application for readers to transform reading into retained, explainable, and app
 ## Architecture & Domain Model
 
 The core philosophy is grounded in `docs/knowledge-consolidation-app.md`: "Do not try to remember everything. Reconstruct the most important ideas without consulting notes."
+
+### FAST Method
+
+The product method is FAST:
+
+1. **F — Forced Retrieval**: reconstruct ideas before viewing the answers.
+2. **A — Alternating Approaches**: alternate Direct, Guided, and Practical modalities.
+3. **S — Spaced Repetition**: review concepts at expanding, optimized intervals.
+4. **T — Tracking**: log progress visually as knowledge consolidates.
+
+The method is grounded in _Make It Stick: The Science of Successful Learning_ by Peter C. Brown, Henry L. Roediger III, and Mark A. McDaniel, and _A Mind for Numbers: How to Excel at Math and Science (Even If You Flunked Algebra)_ by Barbara Oakley.
 
 ### Three Consolidation Levels (`SessionMode`)
 

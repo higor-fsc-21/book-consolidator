@@ -1,4 +1,4 @@
-# Plano de Transição Faseado — Memora
+# Plano de Transição Faseado — Book Consolidator
 
 Plano de migração do protótipo React/Vite para uma aplicação Next.js com PostgreSQL no Supabase.
 
