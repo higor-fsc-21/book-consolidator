@@ -23,7 +23,15 @@ services:
   app:
     build:
       dockerfile: Dockerfile.dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8443}:3000"
     environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-memora}:${POSTGRES_PASSWORD:-memora}@postgres:5432/${POSTGRES_DB:-memora}?schema=public
+      DIRECT_URL: postgresql://${POSTGRES_USER:-memora}:${POSTGRES_PASSWORD:-memora}@postgres:5432/${POSTGRES_DB:-memora}?schema=public
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:${APP_PORT:-8443}}
       NODE_ENV: development
       PORT: 3000
     command: ["sh", "-c", "pnpm exec prisma migrate deploy && pnpm dev"]
@@ -31,3 +39,6 @@ services:
       - .:/app
       - /app/node_modules
       - /app/.next
+
+volumes:
+  memora_postgres_data:

@@ -1,6 +1,7 @@
 .PHONY: help install dev build start up down logs db-up db-down db-migrate db-seed db-studio typecheck format
 
 COMPOSE ?= docker compose
+COMPOSE_DEV = $(COMPOSE) -f docker-compose.dev.yml
 PNPM ?= pnpm
 
 help:
@@ -31,6 +32,28 @@ build:
 
 start:
 	$(PNPM) start
+
+
+# Docker Compose commands - DEV
+
+up-dev:
+	$(COMPOSE_DEV) up --build -d app postgres
+
+rebuild-dev:
+	$(COMPOSE_DEV) up --build -d app
+
+down-dev:
+	$(COMPOSE_DEV) down
+
+logs-dev:
+	$(COMPOSE_DEV) logs -f app
+
+db-up-dev:
+	$(COMPOSE_DEV) up -d postgres
+
+db-down-dev:
+	$(COMPOSE_DEV) stop postgres
+# Docker Compose commands - APP
 
 up:
 	$(COMPOSE) up --build
