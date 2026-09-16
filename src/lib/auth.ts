@@ -1,19 +1,45 @@
 import "server-only";
+import { cache } from "react";
+import { headers } from "next/headers";
 import { db } from "./db";
 import { createClient } from "./supabase/server";
 
-export async function getCurrentUser() {
-  const supabase = await createClient();
-  const {
-    data: { user: authUser },
-    error,
-  } = await supabase.auth.getUser();
+type AuthIdentity = {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    full_name?: string;
+    name?: string;
+  };
+};
 
-  if (error || !authUser) {
-    throw new Error("Unauthorized: no valid session found");
+export const getCurrentUser = cache(async function getCurrentUser() {
+  const requestHeaders = await headers();
+  const forwardedAuthUserId = requestHeaders.get("x-memora-auth-user-id");
+  let authUser: AuthIdentity;
+
+  if (forwardedAuthUserId) {
+    authUser = {
+      id: forwardedAuthUserId,
+      email: requestHeaders.get("x-memora-auth-user-email") ?? undefined,
+      user_metadata: {
+        full_name: requestHeaders.get("x-memora-auth-user-name") ?? undefined,
+      },
+    };
+  } else {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      throw new Error("Unauthorized: no valid session found");
+    }
+
+    authUser = user;
   }
 
-  // 1. Look up by authUserId
   let localUser = await db.user.findFirst({
     where: { authUserId: authUser.id, deletedAt: null },
   });
@@ -24,26 +50,10 @@ export async function getCurrentUser() {
     authUser.user_metadata?.name ||
     (email ? email.split("@")[0] : null);
 
-  // Sync existing user if name is still the placeholder or out of date with Supabase metadata
   if (localUser) {
-    if (
-      resolvedName &&
-      (localUser.name === "Rafael" ||
-        (authUser.user_metadata?.full_name &&
-          localUser.name !== authUser.user_metadata.full_name))
-    ) {
-      localUser = await db.user.update({
-        where: { id: localUser.id },
-        data: {
-          name: resolvedName,
-          ...(email && localUser.email !== email ? { email } : {}),
-        },
-      });
-    }
     return localUser;
   }
 
-  // 2. JIT provisioning by authUserId only
   if (!email) {
     throw new Error("Auth user does not have an email address");
   }
@@ -58,4 +68,4 @@ export async function getCurrentUser() {
   });
 
   return localUser;
-}
+});
