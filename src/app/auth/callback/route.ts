@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -15,6 +16,19 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const resolvedName =
+        user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        (user?.email ? user.email.split("@")[0] : undefined);
+      if (user?.email && resolvedName) {
+        await db.user.updateMany({
+          where: { authUserId: user.id, deletedAt: null },
+          data: { name: resolvedName, email: user.email },
+        });
+      }
       return NextResponse.redirect(`${appUrl}${next}`);
     }
   }

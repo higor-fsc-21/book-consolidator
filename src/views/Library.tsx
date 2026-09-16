@@ -3,7 +3,7 @@ import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type {
-  Book,
+  BookSummary,
   ReadingStatus,
   Importance,
   ConsolidationState,
@@ -13,6 +13,7 @@ import {
   avgScore,
   coverGradient,
   effectiveConsolidationState,
+  totalQuestions,
 } from "@/domain/derived";
 import { createBook } from "@/app/actions/books";
 import { BookModal } from "@/components/BookModal";
@@ -98,9 +99,9 @@ function ImportanceDots({ level }: { level: Importance }) {
   );
 }
 
-function BookCard({ book }: { book: Book }) {
+function BookCard({ book }: { book: BookSummary }) {
   const avg = avgScore(book);
-  const totalQ = book.chapters.reduce((a, c) => a + c.questions.length, 0);
+  const totalQ = totalQuestions(book);
   const readChapters = book.chapters.filter((c) => c.isRead).length;
   const progress =
     book.totalChapters > 0 && readChapters > 0
@@ -202,7 +203,7 @@ const consolidationOrder: Record<ConsolidationState, number> = {
   archived: 2,
 };
 
-export function Library({ books }: { books: Book[] }) {
+export function Library({ books }: { books: BookSummary[] }) {
   const [addOpen, setAddOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -249,8 +250,8 @@ export function Library({ books }: { books: Book[] }) {
           consolidationOrder[effectiveConsolidationState(a)] -
           consolidationOrder[effectiveConsolidationState(b)];
       else if (sortKey === "questions") {
-        const qa = a.chapters.reduce((s, c) => s + c.questions.length, 0);
-        const qb = b.chapters.reduce((s, c) => s + c.questions.length, 0);
+        const qa = totalQuestions(a);
+        const qb = totalQuestions(b);
         diff = qb - qa;
       }
       return sortAsc ? diff : -diff;

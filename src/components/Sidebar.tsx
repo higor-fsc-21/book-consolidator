@@ -1,5 +1,5 @@
 "use client"; /* Brand */ /* Navigation */ /* User */
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/(auth)/login/actions";
 import { BrandMark } from "@/components/BrandMark";
@@ -71,6 +71,19 @@ interface SidebarProps {
   };
 }
 
+function LinkPendingIndicator() {
+  const { pending } = useLinkStatus();
+
+  if (!pending) return null;
+
+  return (
+    <span
+      aria-hidden="true"
+      className="fixed inset-x-0 top-0 z-[100] h-0.5 animate-pulse bg-[#f2d492]"
+    />
+  );
+}
+
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const inLibrary =
@@ -102,6 +115,7 @@ export function Sidebar({ user }: SidebarProps) {
             <Link
               key={href}
               href={href}
+              prefetch={true}
               aria-current={active ? "page" : undefined}
               className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-[500] whitespace-nowrap transition-all duration-150 md:w-full md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-sm ${
                 active
@@ -111,6 +125,7 @@ export function Sidebar({ user }: SidebarProps) {
             >
               {icon}
               {label}
+              <LinkPendingIndicator />
             </Link>
           );
         })}
