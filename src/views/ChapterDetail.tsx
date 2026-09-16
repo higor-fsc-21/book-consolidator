@@ -342,9 +342,9 @@ export function ChapterDetail({
     <div className="min-h-full bg-[#fbf9f8]">
       {}
       <div className="bg-white border-b border-[#e4e2e2]">
-        <div className="max-w-3xl mx-auto px-8 py-8">
+        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           {}
-          <div className="flex items-center gap-2 text-xs font-[500] text-[#74777d] mb-6">
+          <div className="mb-6 flex flex-wrap items-center gap-2 text-xs font-[500] text-[#74777d]">
             <Link
               href="/biblioteca"
               className="hover:text-[#1b1c1c] transition-colors"
@@ -380,14 +380,14 @@ export function ChapterDetail({
             <span className="text-[#1b1c1c]">Capítulo {chapter.number}</span>
           </div>
 
-          <div className="flex items-start justify-between gap-6">
+          <div className="flex flex-col items-start gap-5 md:flex-row md:justify-between md:gap-6">
             <div>
               <div className="text-[11px] font-[600] text-[#1a2e44] uppercase tracking-widest mb-2">
                 Capítulo {chapter.number}
               </div>
               <h1
                 style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
-                className="text-3xl text-[#1b1c1c] tracking-[-0.02em] leading-tight"
+                className="text-2xl leading-tight tracking-[-0.02em] text-[#1b1c1c] sm:text-3xl"
               >
                 {chapter.title}
               </h1>
@@ -398,7 +398,7 @@ export function ChapterDetail({
               )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -477,7 +477,7 @@ export function ChapterDetail({
       </div>
 
       {}
-      <div className="max-w-3xl mx-auto px-8 py-8 space-y-8">
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {}
         <div>
           <div className="flex items-center justify-between mb-3">

@@ -1,30 +1,30 @@
-"use client" /* Header */ /* Search + filter row */ /* Search */ /* Filters toggle */ /* Sort */ /* Sort direction */ /* Extended filter panel */ /* Status tabs */ /* Grid */
-import { useState, useMemo, useTransition } from "react"
-import Link from "next/link"
-import Image from "next/image"
+"use client"; /* Header */ /* Search + filter row */ /* Search */ /* Filters toggle */ /* Sort */ /* Sort direction */ /* Extended filter panel */ /* Status tabs */ /* Grid */
+import { useState, useMemo, useTransition } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import type {
   Book,
   ReadingStatus,
   Importance,
   ConsolidationState,
-} from "@/domain/types"
-import { statusLabels, consolidationLabels } from "@/domain/constants"
+} from "@/domain/types";
+import { statusLabels, consolidationLabels } from "@/domain/constants";
 import {
   avgScore,
   coverGradient,
   effectiveConsolidationState,
-} from "@/domain/derived"
-import { createBook } from "@/app/actions/books"
-import { BookModal } from "@/components/BookModal"
+} from "@/domain/derived";
+import { createBook } from "@/app/actions/books";
+import { BookModal } from "@/components/BookModal";
 
 function BookCover({
   coverUrl,
   title,
   gradient,
 }: {
-  coverUrl?: string | null
-  title: string
-  gradient: [string, string]
+  coverUrl?: string | null;
+  title: string;
+  gradient: [string, string];
 }) {
   if (coverUrl) {
     return (
@@ -37,7 +37,7 @@ function BookCover({
           sizes="48px"
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -48,7 +48,7 @@ function BookCover({
         boxShadow: "2px 3px 10px rgba(0,0,0,0.2)",
       }}
     />
-  )
+  );
 }
 
 function StatusBadge({ status }: { status: ReadingStatus }) {
@@ -58,14 +58,14 @@ function StatusBadge({ status }: { status: ReadingStatus }) {
     want: "bg-[#74777d]/10 text-[#4a4a5a]",
     paused: "bg-[#f2d492]/30 text-[#7a5a00]",
     archived: "bg-[#74777d]/8 text-[#74777d]",
-  }
+  };
   return (
     <span
       className={`text-[10px] font-[500] px-2 py-0.5 rounded-full ${styles[status]}`}
     >
       {statusLabels[status]}
     </span>
-  )
+  );
 }
 
 function ConsolidationBadge({ state }: { state: ConsolidationState }) {
@@ -73,14 +73,14 @@ function ConsolidationBadge({ state }: { state: ConsolidationState }) {
     consolidating: "bg-[#f2d492]/30 text-[#7a5a00]",
     consolidated: "bg-[#8ba889]/20 text-[#2a5628]",
     archived: "bg-[#74777d]/8 text-[#74777d]",
-  }
+  };
   return (
     <span
       className={`text-[10px] font-[500] px-2 py-0.5 rounded-full ${styles[state]}`}
     >
       {consolidationLabels[state]}
     </span>
-  )
+  );
 }
 
 function ImportanceDots({ level }: { level: Importance }) {
@@ -95,17 +95,17 @@ function ImportanceDots({ level }: { level: Importance }) {
         />
       ))}
     </div>
-  )
+  );
 }
 
 function BookCard({ book }: { book: Book }) {
-  const avg = avgScore(book)
-  const totalQ = book.chapters.reduce((a, c) => a + c.questions.length, 0)
-  const readChapters = book.chapters.filter((c) => c.isRead).length
+  const avg = avgScore(book);
+  const totalQ = book.chapters.reduce((a, c) => a + c.questions.length, 0);
+  const readChapters = book.chapters.filter((c) => c.isRead).length;
   const progress =
     book.totalChapters > 0 && readChapters > 0
       ? Math.round((readChapters / book.totalChapters) * 100)
-      : 0
+      : 0;
 
   return (
     <Link
@@ -186,74 +186,77 @@ function BookCard({ book }: { book: Book }) {
         </div>
       </div>
     </Link>
-  )
+  );
 }
 
-type SortKey = "name" | "importance" | "consolidation" | "questions"
+type SortKey = "name" | "importance" | "consolidation" | "questions";
 const sortLabels: Record<SortKey, string> = {
   name: "Nome",
   importance: "Importância",
   consolidation: "Consolidação",
   questions: "Qtd. de perguntas",
-}
+};
 const consolidationOrder: Record<ConsolidationState, number> = {
   consolidating: 0,
   consolidated: 1,
   archived: 2,
-}
+};
 
 export function Library({ books }: { books: Book[] }) {
-  const [addOpen, setAddOpen] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<ReadingStatus | "all">("all")
+  const [addOpen, setAddOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ReadingStatus | "all">(
+    "all",
+  );
   const [importanceFilter, setImportanceFilter] = useState<Importance | "all">(
     "all",
-  )
-  const [consolidationFilter, setConsolidationFilter] =
-    useState<ConsolidationState | "all">("all")
-  const [sortKey, setSortKey] = useState<SortKey>("name")
-  const [sortAsc, setSortAsc] = useState(true)
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  );
+  const [consolidationFilter, setConsolidationFilter] = useState<
+    ConsolidationState | "all"
+  >("all");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortAsc, setSortAsc] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const filtered = useMemo(() => {
-    let result = [...books]
+    let result = [...books];
 
     if (search.trim()) {
-      const q = search.toLowerCase()
+      const q = search.toLowerCase();
       result = result.filter(
         (b) =>
           b.title.toLowerCase().includes(q) ||
           b.author.toLowerCase().includes(q),
-      )
+      );
     }
     if (statusFilter !== "all")
-      result = result.filter((b) => b.status === statusFilter)
+      result = result.filter((b) => b.status === statusFilter);
     if (importanceFilter !== "all")
-      result = result.filter((b) => b.importance === importanceFilter)
+      result = result.filter((b) => b.importance === importanceFilter);
     if (consolidationFilter !== "all")
       result = result.filter(
         (b) => effectiveConsolidationState(b) === consolidationFilter,
-      )
+      );
 
     result.sort((a, b) => {
-      let diff = 0
-      if (sortKey === "name") diff = a.title.localeCompare(b.title, "pt-BR")
-      else if (sortKey === "importance") diff = a.importance - b.importance
+      let diff = 0;
+      if (sortKey === "name") diff = a.title.localeCompare(b.title, "pt-BR");
+      else if (sortKey === "importance") diff = a.importance - b.importance;
       else if (sortKey === "consolidation")
         diff =
           consolidationOrder[effectiveConsolidationState(a)] -
-          consolidationOrder[effectiveConsolidationState(b)]
+          consolidationOrder[effectiveConsolidationState(b)];
       else if (sortKey === "questions") {
-        const qa = a.chapters.reduce((s, c) => s + c.questions.length, 0)
-        const qb = b.chapters.reduce((s, c) => s + c.questions.length, 0)
-        diff = qb - qa
+        const qa = a.chapters.reduce((s, c) => s + c.questions.length, 0);
+        const qb = b.chapters.reduce((s, c) => s + c.questions.length, 0);
+        diff = qb - qa;
       }
-      return sortAsc ? diff : -diff
-    })
+      return sortAsc ? diff : -diff;
+    });
 
-    return result
+    return result;
   }, [
     books,
     search,
@@ -262,30 +265,32 @@ export function Library({ books }: { books: Book[] }) {
     consolidationFilter,
     sortKey,
     sortAsc,
-  ])
+  ]);
 
   const statusTabs: Array<{
-    id: ReadingStatus | "all"
-    label: string
+    id: ReadingStatus | "all";
+    label: string;
   }> = [
     { id: "all", label: "Todos" },
     { id: "reading", label: "Lendo" },
     { id: "completed", label: "Concluídos" },
     { id: "want", label: "Quero ler" },
     { id: "paused", label: "Pausados" },
-  ]
+  ];
 
   const hasActiveFilters =
-    importanceFilter !== "all" || consolidationFilter !== "all" || search.trim()
+    importanceFilter !== "all" ||
+    consolidationFilter !== "all" ||
+    search.trim();
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
       {}
-      <div className="flex items-start justify-between mb-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1
             style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
-            className="text-4xl text-[#1b1c1c] tracking-[-0.02em]"
+            className="text-3xl text-[#1b1c1c] tracking-[-0.02em] sm:text-4xl"
           >
             Biblioteca
           </h1>
@@ -296,7 +301,7 @@ export function Library({ books }: { books: Book[] }) {
         </div>
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#1a2e44] px-4 py-2.5 text-sm font-[600] text-white transition-colors hover:bg-[#2d4460] sm:w-auto"
         >
           <svg
             width="14"
@@ -315,7 +320,7 @@ export function Library({ books }: { books: Book[] }) {
       </div>
 
       {}
-      <div className="flex gap-3 mb-4">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
         {}
         <div className="relative flex-1">
           <svg
@@ -342,7 +347,7 @@ export function Library({ books }: { books: Book[] }) {
         {}
         <button
           onClick={() => setFiltersOpen((o) => !o)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-[500] border transition-all ${
+          className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-[500] transition-all sm:w-auto ${
             hasActiveFilters
               ? "bg-[#1a2e44] text-white border-[#1a2e44]"
               : "bg-white text-[#43474d] border-[#e4e2e2] hover:border-[#1a2e44]/40 shadow-paper-sm"
@@ -367,7 +372,7 @@ export function Library({ books }: { books: Book[] }) {
         {}
         <div className="relative">
           <select
-            className="appearance-none px-4 py-2.5 pr-8 rounded-lg text-sm font-[500] text-[#43474d] bg-white border border-[#e4e2e2] hover:border-[#1a2e44]/40 outline-none cursor-pointer shadow-paper-sm"
+            className="w-full appearance-none rounded-lg border border-[#e4e2e2] bg-white px-4 py-2.5 pr-8 text-sm font-[500] text-[#43474d] shadow-paper-sm outline-none transition-colors hover:border-[#1a2e44]/40 sm:w-auto"
             value={sortKey}
             onChange={(e) => setSortKey(e.target.value as SortKey)}
           >
@@ -394,7 +399,7 @@ export function Library({ books }: { books: Book[] }) {
         {}
         <button
           onClick={() => setSortAsc((a) => !a)}
-          className="p-2.5 bg-white border border-[#e4e2e2] rounded-lg text-[#74777d] hover:text-[#1b1c1c] hover:border-[#1a2e44]/40 transition-colors shadow-paper-sm"
+          className="self-end rounded-lg border border-[#e4e2e2] bg-white p-2.5 text-[#74777d] shadow-paper-sm transition-colors hover:border-[#1a2e44]/40 hover:text-[#1b1c1c] sm:self-auto"
           title={sortAsc ? "Ascendente" : "Descendente"}
         >
           <svg
@@ -429,7 +434,7 @@ export function Library({ books }: { books: Book[] }) {
 
       {}
       {filtersOpen && (
-        <div className="bg-white rounded-xl p-5 shadow-paper border border-[#e4e2e2] mb-4 grid grid-cols-2 gap-5">
+        <div className="mb-4 grid grid-cols-1 gap-5 rounded-xl border border-[#e4e2e2] bg-white p-5 shadow-paper sm:grid-cols-2">
           <div>
             <div className="text-xs font-[500] text-[#43474d] mb-2">
               Importância
@@ -441,7 +446,7 @@ export function Library({ books }: { books: Book[] }) {
                   1: "Alta",
                   2: "Média",
                   3: "Baixa",
-                }
+                };
                 return (
                   <button
                     key={i}
@@ -456,7 +461,7 @@ export function Library({ books }: { books: Book[] }) {
                   >
                     {labels[i]}
                   </button>
-                )
+                );
               })}
             </div>
           </div>
@@ -466,18 +471,15 @@ export function Library({ books }: { books: Book[] }) {
               Consolidação
             </div>
             <div className="flex gap-2 flex-wrap">
-              {([
-                "all",
-                "consolidating",
-                "consolidated",
-                "archived",
-              ] as const).map((c) => {
+              {(
+                ["all", "consolidating", "consolidated", "archived"] as const
+              ).map((c) => {
                 const labels = {
                   all: "Todas",
                   consolidating: "Em consolidação",
                   consolidated: "Consolidado",
                   archived: "Arquivado",
-                }
+                };
                 return (
                   <button
                     key={c}
@@ -492,7 +494,7 @@ export function Library({ books }: { books: Book[] }) {
                   >
                     {labels[c]}
                   </button>
-                )
+                );
               })}
             </div>
           </div>
@@ -501,9 +503,9 @@ export function Library({ books }: { books: Book[] }) {
             <div className="col-span-2 flex justify-end">
               <button
                 onClick={() => {
-                  setSearch("")
-                  setImportanceFilter("all")
-                  setConsolidationFilter("all")
+                  setSearch("");
+                  setImportanceFilter("all");
+                  setConsolidationFilter("all");
                 }}
                 className="text-xs text-[#ba1a1a] hover:underline"
               >
@@ -515,13 +517,13 @@ export function Library({ books }: { books: Book[] }) {
       )}
 
       {}
-      <div className="flex gap-1 border-b border-[#e4e2e2] mb-6">
+      <div className="mb-6 flex flex-wrap gap-1 border-b border-[#e4e2e2]">
         {statusTabs.map((tab) => {
           const count =
             tab.id === "all"
               ? books.length
-              : books.filter((b) => b.status === tab.id).length
-          if (tab.id !== "all" && count === 0) return null
+              : books.filter((b) => b.status === tab.id).length;
+          if (tab.id !== "all" && count === 0) return null;
           return (
             <button
               key={tab.id}
@@ -535,7 +537,7 @@ export function Library({ books }: { books: Book[] }) {
               {tab.label}
               <span className="ml-1.5 text-[10px] text-[#74777d]">{count}</span>
             </button>
-          )
+          );
         })}
       </div>
 
@@ -574,24 +576,24 @@ export function Library({ books }: { books: Book[] }) {
       {addOpen && (
         <BookModal
           onClose={() => {
-            setAddOpen(false)
-            setErrorMessage(null)
+            setAddOpen(false);
+            setErrorMessage(null);
           }}
           isPending={isPending}
           errorMessage={errorMessage}
           onSave={async (data) => {
-            setErrorMessage(null)
+            setErrorMessage(null);
             startTransition(async () => {
-              const res = await createBook(data)
+              const res = await createBook(data);
               if (res.success) {
-                setAddOpen(false)
+                setAddOpen(false);
               } else {
-                setErrorMessage(res.error || "Erro ao salvar livro")
+                setErrorMessage(res.error || "Erro ao salvar livro");
               }
-            })
+            });
           }}
         />
       )}
     </div>
-  )
+  );
 }

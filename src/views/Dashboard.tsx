@@ -141,7 +141,7 @@ export function Dashboard({
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8 p-4 sm:p-6 lg:p-8">
       {}
       <div>
         <div className="text-xs text-[#74777d] font-[500] uppercase tracking-widest mb-1">
@@ -149,7 +149,7 @@ export function Dashboard({
         </div>
         <h1
           style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
-          className="text-4xl text-[#1b1c1c] tracking-[-0.02em]"
+          className="text-3xl text-[#1b1c1c] tracking-[-0.02em] sm:text-4xl"
         >
           O que importa agora
         </h1>
@@ -392,7 +392,7 @@ export function Dashboard({
       )}
 
       {}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
           {
             label: "Meta anual",
@@ -467,11 +467,15 @@ export function Dashboard({
                   day: "2-digit",
                   month: "short",
                   year: "2-digit",
+                  timeZone: "UTC",
                 });
                 const isFirst = idx === 0;
 
                 return (
-                  <div key={item.id} className="flex items-center gap-4 py-3">
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-2 py-3 sm:gap-4"
+                  >
                     {}
                     <div className={`w-[30px] flex justify-center shrink-0`}>
                       <div
@@ -486,7 +490,7 @@ export function Dashboard({
                     {}
                     <Link
                       href={`/livros/${item.book.id}`}
-                      className="flex-1 flex items-center gap-3 text-left hover:bg-[#f5f3f3] rounded-lg px-3 py-2 -mx-3 transition-colors group"
+                      className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-3 py-2 -mx-3 text-left transition-colors group hover:bg-[#f5f3f3] sm:gap-3"
                     >
                       <BookCover
                         gradient={coverGradient(item.book.id)}
@@ -500,9 +504,9 @@ export function Dashboard({
                           {modeLabels[item.mode]}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                         <ScoreChip score={item.score} />
-                        <div className="text-[11px] font-mono text-[#74777d] w-20 text-right">
+                        <div className="w-16 text-right font-mono text-[11px] text-[#74777d] sm:w-20">
                           {dateLabel}
                         </div>
                       </div>

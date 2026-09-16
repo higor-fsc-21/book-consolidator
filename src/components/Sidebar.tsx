@@ -80,9 +80,8 @@ export function Sidebar({ user }: SidebarProps) {
     user?.name || (user?.email ? user.email.split("@")[0] : "Usuário");
 
   return (
-    <aside className="w-[220px] shrink-0 flex flex-col h-full border-r border-[#e4e2e2] bg-[#f5f3f3]">
-      {}
-      <div className="px-5 py-6 border-b border-[#e4e2e2]">
+    <aside className="fixed inset-x-0 bottom-0 z-40 flex min-h-[68px] shrink-0 border-t border-[#e4e2e2] bg-[#f5f3f3] pb-[env(safe-area-inset-bottom)] md:static md:h-full md:w-[220px] md:flex-col md:border-r md:border-t-0 md:pb-0">
+      <div className="hidden px-5 py-6 md:block md:border-b md:border-[#e4e2e2]">
         <div className="flex items-center gap-2.5">
           <BrandMark size={28} className="rounded-[6px]" />
           <span className="font-display text-[15px] font-[400] text-[#1b1c1c] tracking-[-0.01em]">
@@ -91,8 +90,7 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </div>
 
-      {}
-      <nav className="flex-1 p-3 space-y-0.5">
+      <nav className="flex flex-1 items-stretch gap-1 px-2 py-2 md:block md:space-y-0.5 md:p-3">
         {navItems.map(({ href, label, icon }) => {
           const active =
             href === "/painel"
@@ -104,7 +102,8 @@ export function Sidebar({ user }: SidebarProps) {
             <Link
               key={href}
               href={href}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
+              aria-current={active ? "page" : undefined}
+              className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-[500] whitespace-nowrap transition-all duration-150 md:w-full md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-sm ${
                 active
                   ? "bg-[#1a2e44]/[0.09] text-[#1a2e44] font-[600]"
                   : "text-[#43474d] hover:text-[#1b1c1c] hover:bg-[#1b1c1c]/[0.04]"
@@ -117,8 +116,7 @@ export function Sidebar({ user }: SidebarProps) {
         })}
       </nav>
 
-      {}
-      <div className="p-4 border-t border-[#e4e2e2]">
+      <div className="hidden border-t border-[#e4e2e2] p-4 md:block">
         <div className="flex items-center gap-3">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[13px] font-[600] shrink-0"

@@ -239,7 +239,7 @@ function DirectSession({
   );
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-8 space-y-5">
+    <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       {}
       <div>
         <div className="flex items-center justify-between text-xs font-mono text-[#74777d] mb-2">
@@ -456,7 +456,7 @@ function PromptDisplay({
         };
 
   return (
-    <div className="max-w-3xl mx-auto px-8 py-8 space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <div className="flex items-center gap-3">
         <span className="text-2xl">{c.emoji}</span>
         <div>
@@ -710,7 +710,7 @@ function ResultsScreen({
     : null;
 
   return (
-    <div className="max-w-2xl mx-auto px-8 py-8 space-y-8">
+    <div className="mx-auto max-w-2xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <div className="text-center">
         <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest mb-4">
           Sessão concluída
@@ -906,13 +906,14 @@ export function MemorizationSession({
   return (
     <div className="min-h-full bg-[#fbf9f8]">
       <div className="bg-white border-b border-[#e4e2e2]">
-        <div className="max-w-3xl mx-auto px-8 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <Link
               href={`/livros/${book.id}`}
-              className="flex items-center gap-2 text-[#74777d] hover:text-[#1b1c1c] text-xs font-[500] transition-colors"
+              className="flex min-w-0 items-center gap-2 truncate text-xs font-[500] text-[#74777d] transition-colors hover:text-[#1b1c1c]"
             >
               <svg
+                className="shrink-0"
                 width="14"
                 height="14"
                 viewBox="0 0 24 24"
@@ -934,8 +935,8 @@ export function MemorizationSession({
               </>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-[11px] font-[500] text-[#74777d]">
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="hidden text-[11px] font-[500] text-[#74777d] sm:block">
               {step === "select" && "Escolher modalidade"}
               {step === "session" && selectedMode && modeLabels[selectedMode]}
               {step === "results" && "Resultado"}
@@ -945,7 +946,7 @@ export function MemorizationSession({
                 type="button"
                 onClick={handleCancelSession}
                 disabled={canceling}
-                className="flex items-center gap-1.5 text-[11px] font-[500] px-3 py-1.5 rounded-lg border border-[#ba1a1a]/25 text-[#ba1a1a] hover:bg-[#ba1a1a]/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-[#ba1a1a]/25 px-3 py-1.5 text-[11px] font-[500] text-[#ba1a1a] transition-colors hover:bg-[#ba1a1a]/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {canceling && (
                   <span className="w-3 h-3 border-2 border-[#ba1a1a] border-t-transparent rounded-full animate-spin" />
@@ -956,7 +957,7 @@ export function MemorizationSession({
           </div>
         </div>
         {cancelError && (
-          <div className="max-w-3xl mx-auto px-8 pb-4 -mt-1">
+          <div className="mx-auto max-w-3xl px-4 pb-4 -mt-1 sm:px-6 lg:px-8">
             <div className="text-xs text-[#ba1a1a] bg-[#ba1a1a]/8 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">
               {cancelError}
             </div>
@@ -965,7 +966,7 @@ export function MemorizationSession({
       </div>
 
       {step === "select" && (
-        <div className="max-w-2xl mx-auto px-8 py-8">
+        <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           <FastMethodOverview />
           <div className="mb-8">
             <h1
@@ -1028,14 +1029,14 @@ export function MemorizationSession({
         allQuestions.length > 0 && (
           <>
             {errorMessage && (
-              <div className="max-w-2xl mx-auto px-8 pt-4">
+              <div className="mx-auto max-w-2xl px-4 pt-4 sm:px-6 lg:px-8">
                 <div className="text-sm text-[#ba1a1a] bg-[#ba1a1a]/8 border border-[#ba1a1a]/20 rounded-lg px-3 py-2">
                   {errorMessage}
                 </div>
               </div>
             )}
             {isPending && (
-              <div className="max-w-2xl mx-auto px-8 pt-4 text-sm text-[#74777d]">
+              <div className="mx-auto max-w-2xl px-4 pt-4 text-sm text-[#74777d] sm:px-6 lg:px-8">
                 Salvando sessão…
               </div>
             )}

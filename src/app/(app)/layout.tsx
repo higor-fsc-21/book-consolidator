@@ -20,7 +20,7 @@ export default async function AppLayout({
   return (
     <div className="flex h-full bg-[#fbf9f8] overflow-hidden">
       <Sidebar user={user} />
-      <main className="flex-1 overflow-auto min-w-0 bg-[#fbf9f8]">
+      <main className="flex-1 min-w-0 overflow-auto bg-[#fbf9f8] pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0">
         {children}
       </main>
     </div>

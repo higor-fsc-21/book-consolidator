@@ -344,7 +344,7 @@ export function BookDetail({ book }: { book: Book }) {
     <div className="min-h-full bg-[#fbf9f8]">
       {}
       <div className="bg-white border-b border-[#e4e2e2]">
-        <div className="max-w-4xl mx-auto px-8 py-8">
+        <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           {}
           <Link
             href="/biblioteca"
@@ -365,7 +365,7 @@ export function BookDetail({ book }: { book: Book }) {
             Biblioteca
           </Link>
 
-          <div className="flex gap-8 items-start">
+          <div className="flex flex-wrap items-start gap-6 md:flex-nowrap md:gap-8">
             <BookCover
               coverUrl={book.coverUrl}
               title={book.title}
@@ -375,7 +375,7 @@ export function BookDetail({ book }: { book: Book }) {
             <div className="flex-1 min-w-0">
               <h1
                 style={{ fontFamily: "'Libre Caslon Text', Georgia, serif" }}
-                className="text-3xl text-[#1b1c1c] tracking-[-0.01em] leading-tight"
+                className="text-2xl leading-tight tracking-[-0.01em] text-[#1b1c1c] sm:text-3xl"
               >
                 {book.title}
               </h1>
@@ -440,7 +440,7 @@ export function BookDetail({ book }: { book: Book }) {
               )}
 
               {}
-              <div className="mt-5 flex gap-6 text-xs font-mono">
+              <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3 text-xs font-mono">
                 {totalQuestions > 0 && (
                   <div>
                     <div className="text-[#74777d]">Perguntas</div>
@@ -485,7 +485,7 @@ export function BookDetail({ book }: { book: Book }) {
             </div>
 
             {}
-            <div className="shrink-0 flex flex-col gap-2">
+            <div className="flex w-full shrink-0 flex-col gap-2 md:w-auto">
               {(book.status === "want" || book.status === "paused") && (
                 <button
                   onClick={() => {
@@ -494,7 +494,7 @@ export function BookDetail({ book }: { book: Book }) {
                     });
                   }}
                   disabled={isPending}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors disabled:opacity-50"
+                  className="flex w-full items-center gap-2 rounded-lg bg-[#1a2e44] px-4 py-2.5 text-sm font-[600] text-white transition-colors hover:bg-[#2d4460] disabled:opacity-50 md:w-auto"
                 >
                   <svg
                     width="14"
@@ -516,7 +516,7 @@ export function BookDetail({ book }: { book: Book }) {
 
               <button
                 onClick={() => setEditBookOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 border border-[#e4e2e2] text-[#43474d] text-sm font-[500] rounded-lg hover:bg-[#f5f3f3] transition-colors"
+                className="flex w-full items-center gap-2 rounded-lg border border-[#e4e2e2] px-4 py-2.5 text-sm font-[500] text-[#43474d] transition-colors hover:bg-[#f5f3f3] md:w-auto"
               >
                 <svg
                   width="14"
@@ -536,7 +536,7 @@ export function BookDetail({ book }: { book: Book }) {
 
               <button
                 onClick={() => setConfirmDelete(true)}
-                className="flex items-center gap-2 px-4 py-2.5 border border-[#ba1a1a]/30 text-[#ba1a1a] text-sm font-[500] rounded-lg hover:bg-[#ba1a1a]/5 transition-colors"
+                className="flex w-full items-center gap-2 rounded-lg border border-[#ba1a1a]/30 px-4 py-2.5 text-sm font-[500] text-[#ba1a1a] transition-colors hover:bg-[#ba1a1a]/5 md:w-auto"
               >
                 <svg
                   width="14"
@@ -558,7 +558,7 @@ export function BookDetail({ book }: { book: Book }) {
                 <div className="relative">
                   <button
                     onClick={() => setSessionOpen(!sessionOpen)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors w-full"
+                    className="flex w-full items-center gap-2 rounded-lg bg-[#1a2e44] px-4 py-2.5 text-sm font-[600] text-white transition-colors hover:bg-[#2d4460]"
                   >
                     Iniciar revisão
                     <svg
@@ -624,8 +624,8 @@ export function BookDetail({ book }: { book: Book }) {
         </div>
 
         {}
-        <div className="max-w-4xl mx-auto px-8">
-          <div className="flex gap-1 border-b border-[#e4e2e2] -mb-px">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="-mb-px flex flex-wrap gap-1 border-b border-[#e4e2e2]">
             {(
               [
                 { id: "chapters", label: "Capítulos" },
@@ -641,7 +641,7 @@ export function BookDetail({ book }: { book: Book }) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 text-sm font-[500] border-b-2 transition-all -mb-px ${
+                className={`-mb-px shrink-0 border-b-2 px-4 py-3 text-sm font-[500] transition-all ${
                   activeTab === tab.id
                     ? "border-[#1a2e44] text-[#1a2e44]"
                     : "border-transparent text-[#74777d] hover:text-[#1b1c1c]"
@@ -655,7 +655,7 @@ export function BookDetail({ book }: { book: Book }) {
       </div>
 
       {}
-      <div className="max-w-4xl mx-auto px-8 py-8">
+      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {}
         {activeTab === "chapters" && (
           <div className="space-y-2">
