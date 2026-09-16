@@ -19,5 +19,8 @@ logs/
 /.plugins/
 /.opencode-skills/
 
-
+# Harness evaluation artifacts
 .harness-eval/
+
+# macOS system files
+.DS_Store

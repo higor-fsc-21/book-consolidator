@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Memora",
-    short_name: "Memora",
+    name: "Book Consolidator",
+    short_name: "Book Consolidator",
     description:
       "Transforme a leitura em conhecimento retido, explicável e aplicável.",
     start_url: "/painel",

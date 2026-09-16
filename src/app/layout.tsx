@@ -30,14 +30,18 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Memora",
+  title: "Book Consolidator",
   description:
     "Transforme a leitura em conhecimento retido, explicável e aplicável através de sessões de consolidação espaçada.",
-  applicationName: "Memora",
+  applicationName: "Book Consolidator",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+  },
   appleWebApp: {
     capable: true,
-    title: "Memora",
+    title: "Book Consolidator",
     statusBarStyle: "default",
   },
   verification: {

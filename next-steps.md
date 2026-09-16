@@ -1,8 +1,10 @@
 # Próximos Passos (Next Steps)
 
-## Favicon
+## Ícones
 
-O favicon atual está configurado em `src/app/icon.svg`. O Next.js (App Router) o disponibiliza automaticamente na raiz como `/icon.svg` e o utiliza como ícone da aplicação.
+O ícone vetorial da interface está em `src/app/icon.svg` e é disponibilizado pelo Next.js na raiz como `/icon.svg`.
+
+O favicon rasterizado compatível com mecanismos de busca está em `src/app/favicon.ico` e é disponibilizado como `/favicon.ico`.
 
 Para adicionar um ícone específico para dispositivos Apple no futuro:
 
