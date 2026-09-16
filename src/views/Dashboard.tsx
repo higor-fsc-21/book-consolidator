@@ -23,6 +23,7 @@ import {
   cancelSessionAction,
   startSessionAction,
 } from "@/app/actions/sessions";
+import { RevisionQueueButton } from "@/components/RevisionQueueButton";
 
 function BookCover({
   gradient,
@@ -155,6 +156,18 @@ export function Dashboard({
         <p className="text-[#74777d] text-sm mt-1.5">
           Construa uma memória do que aprendeu — um capítulo de cada vez.
         </p>
+        <div className="mt-4 flex justify-end">
+          <RevisionQueueButton
+            bookCount={
+              books.filter(
+                (book) =>
+                  book.status === "completed" &&
+                  book.consolidationState !== "archived" &&
+                  book.nextRevision !== null,
+              ).length
+            }
+          />
+        </div>
       </div>
 
       {}

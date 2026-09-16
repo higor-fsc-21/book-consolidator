@@ -116,6 +116,24 @@ export const GoogleBooksSearchQuerySchema = z.object({
   maxResults: z.coerce.number().int().min(1).max(40).default(10),
 });
 
+export const NotificationPreferencesSchema = z.object({
+  enabled: z.boolean(),
+  reminderTimeMinutes: z.number().int().min(0).max(1439),
+  timezone: z.string().trim().min(1).max(100),
+});
+
+export const PushSubscriptionSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});
+
+export const PushSubscriptionEndpointSchema = z.object({
+  endpoint: z.string().url(),
+});
+
 export type CreateBookInput = z.infer<typeof CreateBookInputSchema>;
 export type UpdateBookInput = z.infer<typeof UpdateBookInputSchema>;
 export type CreateChapterInput = z.infer<typeof CreateChapterInputSchema>;
@@ -135,6 +153,10 @@ export type AiEvaluationResult = z.infer<typeof AiEvaluationResultSchema>;
 export type GoogleBooksSearchQuery = z.infer<
   typeof GoogleBooksSearchQuerySchema
 >;
+export type NotificationPreferencesInput = z.infer<
+  typeof NotificationPreferencesSchema
+>;
+export type PushSubscriptionInput = z.infer<typeof PushSubscriptionSchema>;
 
 export type ActionResult<T = void> =
   | {

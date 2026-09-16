@@ -40,6 +40,17 @@ enum Difficulty {
   hard
 }
 
+enum NotificationChannel {
+  web_push
+  email
+}
+
+enum NotificationDeliveryStatus {
+  pending
+  sent
+  failed
+}
+
 model User {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   authUserId String?   @unique
@@ -49,8 +60,14 @@ model User {
   updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
   deletedAt  DateTime? @db.Timestamptz(3)
 
-  books    Book[]
-  sessions RevisionSession[]
+  revisionRemindersEnabled Boolean @default(false)
+  reminderTimeMinutes     Int     @default(540)
+  timezone                String  @default("UTC")
+
+  books                 Book[]
+  sessions              RevisionSession[]
+  pushSubscriptions     PushSubscription[]
+  notificationDeliveries NotificationDelivery[]
 }
 
 model Book {
@@ -79,8 +96,44 @@ model Book {
   user     User              @relation(fields: [userId], references: [id])
   chapters Chapter[]
   sessions RevisionSession[]
+  notificationDeliveries NotificationDelivery[]
 
   @@index([userId, deletedAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model NotificationDelivery {
+  id           String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String                     @db.Uuid
+  bookId       String                     @db.Uuid
+  channel      NotificationChannel
+  status       NotificationDeliveryStatus @default(pending)
+  revisionDate DateTime                   @db.Date
+  dedupeKey    String                     @unique
+  attemptCount Int                        @default(0)
+  sentAt       DateTime?                  @db.Timestamptz(3)
+  lastError    String?
+  createdAt    DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime                   @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, revisionDate])
+  @@index([bookId, revisionDate])
 }
 
 model Chapter {

@@ -43,6 +43,25 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    href: "/configuracoes",
+    label: "Configurações",
+    icon: (
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 1.7-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V22h-2.4v-.2a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.7-1.7.06-.06A1.7 1.7 0 0 0 8.46 15a1.7 1.7 0 0 0-1.56-1.03H6v-2.4h.9a1.7 1.7 0 0 0 1.56-1.03 1.7 1.7 0 0 0-.34-1.88l-.06-.06 1.7-1.7.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 12.73 5.7V5h2.4v.7a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.7 1.7-.06.06A1.7 1.7 0 0 0 19.4 10c.22.5.7.83 1.25.83H21v2.4h-.35c-.55 0-1.03.33-1.25.83Z" />
+      </svg>
+    ),
+  },
 ];
 
 interface SidebarProps {
@@ -76,7 +95,11 @@ export function Sidebar({ user }: SidebarProps) {
       <nav className="flex-1 p-3 space-y-0.5">
         {navItems.map(({ href, label, icon }) => {
           const active =
-            href === "/painel" ? pathname === "/painel" : inLibrary;
+            href === "/painel"
+              ? pathname === "/painel"
+              : href === "/biblioteca"
+                ? inLibrary
+                : pathname.startsWith(href);
           return (
             <Link
               key={href}
