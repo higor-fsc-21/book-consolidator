@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 
 export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
   return (
@@ -18,22 +19,7 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
             className="inline-flex items-center gap-3"
             aria-label="Voltar para a página inicial"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#f2d492] text-[#172f3b]">
-              <svg
-                width="19"
-                height="19"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
-            </div>
+            <BrandMark size={40} className="rounded-[10px]" />
             <span className="font-display text-xl tracking-[-0.02em]">
               Book Consolidator
             </span>
@@ -55,22 +41,7 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
         <div className="w-full max-w-[400px] justify-self-center rounded-[4px] bg-[#f6f3ed] p-7 shadow-[16px_18px_0_rgba(242,212,146,0.25)] sm:p-9">
           <div className="mb-8">
             <div className="mb-6 flex items-center gap-3 lg:hidden">
-              <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#f2d492] text-[#172f3b]">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                </svg>
-              </div>
+              <BrandMark size={36} className="rounded-[10px]" />
               <span className="font-display text-xl text-[#172f3b]">
                 Book Consolidator
               </span>

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/(auth)/login/actions";
+import { BrandMark } from "@/components/BrandMark";
 
 const navItems = [
   {
@@ -64,24 +65,7 @@ export function Sidebar({ user }: SidebarProps) {
       {}
       <div className="px-5 py-6 border-b border-[#e4e2e2]">
         <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0"
-            style={{ background: "linear-gradient(135deg, #1a2e44, #2d4460)" }}
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-            </svg>
-          </div>
+          <BrandMark size={28} className="rounded-[6px]" />
           <span className="font-display text-[15px] font-[400] text-[#1b1c1c] tracking-[-0.01em]">
             Book Consolidator
           </span>

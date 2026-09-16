@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { BrandMark } from "@/components/BrandMark";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:8443";
 
@@ -19,22 +20,10 @@ export const metadata: Metadata = {
 
 function Mark() {
   return (
-    <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#f2d492] text-[#172f3b] shadow-[0_4px_14px_rgba(242,212,146,0.24)]">
-      <svg
-        width="19"
-        height="19"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-      </svg>
-    </span>
+    <BrandMark
+      size={36}
+      className="rounded-[10px] shadow-[0_4px_14px_rgba(242,212,146,0.24)]"
+    />
   );
 }
 
@@ -301,9 +290,12 @@ export default function HomePage() {
       </section>
 
       <footer className="flex flex-col justify-between gap-4 bg-[#172f3b] px-6 py-8 text-xs text-white/55 sm:flex-row lg:px-10">
-        <span className="font-display text-base text-white">
-          Book Consolidator
-        </span>
+        <div className="flex items-center gap-2.5">
+          <BrandMark size={24} className="rounded-[6px]" />
+          <span className="font-display text-base text-white">
+            Book Consolidator
+          </span>
+        </div>
         <span>
           Conhecimento não é o que você leu. É o que você consegue reconstruir.
         </span>
