@@ -1,5 +1,5 @@
 "use client"; /* Brand */ /* Navigation */ /* User */
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/(auth)/login/actions";
 import { BrandMark } from "@/components/BrandMark";
@@ -71,6 +71,16 @@ interface SidebarProps {
   };
 }
 
+function LinkProgress() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[#8ba889] transition-opacity ${pending ? "opacity-100" : "opacity-0"}`}
+    />
+  );
+}
+
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const inLibrary =
@@ -102,13 +112,15 @@ export function Sidebar({ user }: SidebarProps) {
             <Link
               key={href}
               href={href}
+              prefetch={true}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-[500] whitespace-nowrap transition-all duration-150 md:w-full md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-sm ${
+              className={`relative flex flex-1 flex-col items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-[500] whitespace-nowrap transition-all duration-150 md:w-full md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:text-sm ${
                 active
                   ? "bg-[#1a2e44]/[0.09] text-[#1a2e44] font-[600]"
                   : "text-[#43474d] hover:text-[#1b1c1c] hover:bg-[#1b1c1c]/[0.04]"
               }`}
             >
+              <LinkProgress />
               {icon}
               {label}
             </Link>
