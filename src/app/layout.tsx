@@ -1,9 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Libre_Caslon_Text,
   Hanken_Grotesk,
   JetBrains_Mono,
 } from "next/font/google";
+import { PWARegistration } from "@/components/PWARegistration";
 import "./globals.css";
 
 const libreCaslonText = Libre_Caslon_Text({
@@ -29,12 +30,25 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Book Consolidator",
+  title: "Memora",
   description:
     "Transforme a leitura em conhecimento retido, explicável e aplicável através de sessões de consolidação espaçada.",
+  applicationName: "Memora",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Memora",
+    statusBarStyle: "default",
+  },
   verification: {
     google: "kHxZsMUtcFQGzo1aLfCt-8uelBztF4CH7R8seuKxvFM",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#172f3b",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -47,7 +61,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${libreCaslonText.variable} ${hankenGrotesk.variable} ${jetBrainsMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <PWARegistration />
+        {children}
+      </body>
     </html>
   );
 }
