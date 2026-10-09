@@ -1,5 +1,5 @@
 "use client"; /* Progress */ /* Chapter context */ /* Question */
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type {
@@ -23,6 +23,7 @@ import {
   completeSessionAction,
   startSessionAction,
 } from "@/app/actions/sessions";
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
 
 interface SessionResults {
   correct: number;
@@ -838,9 +839,9 @@ export function MemorizationSession({
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [starting, startNewTransition] = useTransition();
-  const [canceling, startCancelTransition] = useTransition();
+  const [isPending, startTransition] = useSingleFlightTransition();
+  const [starting, startNewTransition] = useSingleFlightTransition();
+  const [canceling, startCancelTransition] = useSingleFlightTransition();
   const router = useRouter();
 
   const eligibleChapters = chapter

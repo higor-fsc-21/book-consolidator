@@ -1,5 +1,5 @@
 "use client"; /* Hero header */ /* Back */ /* Meta */ /* Progress */ /* Stats */ /* Actions */ /* Tabs */ /* Tab content */ /* Chapters */ /* Summary */ /* Revisions */ /* Bar chart */ /* Revision list */ /* Delete Confirmation Modal */
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -29,6 +29,7 @@ import {
   startSessionAction,
 } from "@/app/actions/sessions";
 import { BookModal } from "@/components/BookModal";
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
 
 function BookCover({
   coverUrl,
@@ -306,7 +307,7 @@ export function BookDetail({ book }: { book: Book }) {
   const [summaryDraft, setSummaryDraft] = useState(book.summary ?? "");
   const [addingChapter, setAddingChapter] = useState(false);
   const [editBookOpen, setEditBookOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useSingleFlightTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -592,6 +593,7 @@ export function BookDetail({ book }: { book: Book }) {
                           return (
                             <button
                               key={mode}
+                              disabled={isPending}
                               onClick={() => {
                                 setSessionOpen(false);
                                 startTransition(async () => {
@@ -834,6 +836,7 @@ export function BookDetail({ book }: { book: Book }) {
                         </Link>
                         {hasQ && (
                           <button
+                            disabled={isPending}
                             onClick={() =>
                               startTransition(async () => {
                                 await startSessionAction(book.id, {
@@ -1189,6 +1192,7 @@ export function BookDetail({ book }: { book: Book }) {
                 </p>
                 {chaptersWithQuestions.length > 0 && (
                   <button
+                    disabled={isPending}
                     onClick={() =>
                       startTransition(async () => {
                         await startSessionAction(book.id);

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { rebuildRevisionQueueAction } from "@/app/actions/revisions";
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
 
 export function RevisionQueueButton({ bookCount }: { bookCount: number }) {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useSingleFlightTransition();
   const [message, setMessage] = useState<string | null>(null);
 
   const handleRebuild = () => {

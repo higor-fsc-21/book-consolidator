@@ -138,7 +138,9 @@ export function BookModal({
       {}
       <div
         className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"
-        onClick={onClose}
+        onClick={() => {
+          if (!isPending) onClose();
+        }}
       />
 
       {}
@@ -169,6 +171,7 @@ export function BookModal({
           </div>
           <button
             onClick={onClose}
+            disabled={isPending}
             className="text-[#74777d] hover:text-[#1b1c1c] transition-colors"
           >
             <svg

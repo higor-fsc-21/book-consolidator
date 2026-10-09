@@ -1,5 +1,5 @@
 "use client"; /* Header */ /* Breadcrumb */ /* Content */ /* Summary */ /* Questions */ /* Chapter navigation */ /* Delete Chapter Confirmation Modal */
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type {
@@ -20,6 +20,7 @@ import { startSessionAction } from "@/app/actions/sessions";
 import { QuestionModal } from "@/components/QuestionModal";
 import { ChapterModal } from "@/components/ChapterModal";
 import type { UpdateQuestionInput, UpdateChapterInput } from "@/lib/validators";
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
 
 function QuestionCard({
   bookId,
@@ -35,7 +36,7 @@ function QuestionCard({
   onEdit: () => void;
 }) {
   const [revealed, setRevealed] = useState(false);
-  const [isDeleting, startDeleteTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useSingleFlightTransition();
 
   const difficultyStyle = {
     hard: "bg-[#ba1a1a]/10 text-[#ba1a1a]",
@@ -291,7 +292,7 @@ export function ChapterDetail({
   const [addingQuestion, setAddingQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editingChapter, setEditingChapter] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useSingleFlightTransition();
   const [confirmDeleteChapter, setConfirmDeleteChapter] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const hasQ = chapter.questions.length > 0;
@@ -447,6 +448,7 @@ export function ChapterDetail({
 
               {hasQ && (
                 <button
+                  disabled={isPending}
                   onClick={() =>
                     startTransition(async () => {
                       await startSessionAction(book.id, {
@@ -605,6 +607,7 @@ export function ChapterDetail({
                 <AddQuestionForm
                   onSave={handleSaveQuestion}
                   onCancel={() => setAddingQuestion(false)}
+                  isPending={isPending}
                 />
               ) : (
                 <div className="py-12 text-center bg-white rounded-xl border border-dashed border-[#c4c6cd] shadow-paper-sm">

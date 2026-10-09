@@ -1,5 +1,5 @@
 "use client"; /* Header */ /* Primary row */ /* Currently reading */ /* Recommended for revision */ /* Stats row */ /* Annual goal progress */ /* Recent revision timeline */ /* Vertical line */ /* Dot */ /* Content */
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Book } from "@/domain/types";
@@ -24,6 +24,7 @@ import {
   startSessionAction,
 } from "@/app/actions/sessions";
 import { RevisionQueueButton } from "@/components/RevisionQueueButton";
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
 
 function BookCover({
   gradient,
@@ -97,8 +98,8 @@ export function Dashboard({
   books: Book[];
   dateStr: string;
 }) {
-  const [isStartingSession, startTransition] = useTransition();
-  const [, startCancelTransition] = useTransition();
+  const [isStartingSession, startTransition] = useSingleFlightTransition();
+  const [, startCancelTransition] = useSingleFlightTransition();
   const [cancelingSessionId, setCancelingSessionId] = useState<string | null>(
     null,
   );

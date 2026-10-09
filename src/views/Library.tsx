@@ -1,5 +1,5 @@
 "use client"; /* Header */ /* Search + filter row */ /* Search */ /* Filters toggle */ /* Sort */ /* Sort direction */ /* Extended filter panel */ /* Status tabs */ /* Grid */
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type {
@@ -17,6 +17,7 @@ import {
 } from "@/domain/derived";
 import { createBook } from "@/app/actions/books";
 import { BookModal } from "@/components/BookModal";
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
 
 function BookCover({
   coverUrl,
@@ -205,7 +206,7 @@ const consolidationOrder: Record<ConsolidationState, number> = {
 
 export function Library({ books }: { books: BookSummary[] }) {
   const [addOpen, setAddOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useSingleFlightTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ReadingStatus | "all">(

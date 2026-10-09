@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import {
   getNotificationPreferencesAction,
   removePushSubscriptionAction,
   savePushSubscriptionAction,
   updateNotificationPreferencesAction,
 } from "@/app/actions/notifications";
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
 
 const DEFAULT_TIMEZONE = "UTC";
 const DEFAULT_TIME = 9 * 60;
@@ -37,7 +38,7 @@ export function NotificationSettings() {
   );
   const [subscriptionCount, setSubscriptionCount] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useSingleFlightTransition();
 
   useEffect(() => {
     void getNotificationPreferencesAction().then((result) => {
