@@ -1,5 +1,5 @@
 "use client"; /* Header */ /* Breadcrumb */ /* Content */ /* Summary */ /* Questions */ /* Chapter navigation */ /* Delete Chapter Confirmation Modal */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type {
@@ -176,6 +176,37 @@ function QuestionCard({
   );
 }
 
+function QuestionCardSkeleton({ index }: { index: number }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label="Atualizando lista de perguntas"
+      className="bg-white rounded-xl border border-[#e4e2e2] shadow-paper-sm overflow-hidden animate-pulse"
+    >
+      <div className="p-5">
+        <div className="flex items-start gap-4">
+          <div className="w-7 h-7 rounded-full bg-[#1a2e44]/[0.08] flex items-center justify-center text-[11px] font-mono text-[#1a2e44]/60 shrink-0 mt-0.5">
+            {index + 1}
+          </div>
+          <div className="flex-1 min-w-0 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-2 flex-1">
+                <div className="h-4 bg-[#e4e2e2] rounded w-3/4" />
+                <div className="h-4 bg-[#e4e2e2] rounded w-1/2" />
+              </div>
+              <div className="h-5 w-14 bg-[#e4e2e2] rounded-full shrink-0" />
+            </div>
+            <div className="pt-1">
+              <div className="h-8 w-36 bg-[#e4e2e2]/70 rounded-lg" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface NewQuestionForm {
   text: string;
   answer: string;
@@ -209,9 +240,10 @@ function AddQuestionForm({
           Pergunta *
         </label>
         <textarea
-          className="w-full px-3.5 py-3 text-sm bg-[#f9f7f4] border-b-2 border-[#e4e2e2] focus:border-[#1a2e44] outline-none rounded-t-md text-[#1b1c1c] leading-relaxed resize-none transition-colors"
+          className="w-full px-3.5 py-3 text-sm bg-[#f9f7f4] border-b-2 border-[#e4e2e2] focus:border-[#1a2e44] outline-none rounded-t-md text-[#1b1c1c] leading-relaxed resize-none transition-colors disabled:opacity-60"
           placeholder="ex.: Por que o autor considera essa ideia fundamental?"
           rows={2}
+          disabled={isPending}
           value={form.text}
           onChange={(e) => setForm((f) => ({ ...f, text: e.target.value }))}
           autoFocus
@@ -226,9 +258,10 @@ function AddQuestionForm({
           Resposta *
         </label>
         <textarea
-          className="w-full px-3.5 py-3 text-sm bg-[#f9f7f4] border-b-2 border-[#e4e2e2] focus:border-[#1a2e44] outline-none rounded-t-md text-[#1b1c1c] leading-relaxed resize-none transition-colors"
+          className="w-full px-3.5 py-3 text-sm bg-[#f9f7f4] border-b-2 border-[#e4e2e2] focus:border-[#1a2e44] outline-none rounded-t-md text-[#1b1c1c] leading-relaxed resize-none transition-colors disabled:opacity-60"
           placeholder="Escreva a resposta completa que deseja lembrar meses depois..."
           rows={3}
+          disabled={isPending}
           value={form.answer}
           onChange={(e) => setForm((f) => ({ ...f, answer: e.target.value }))}
         />
@@ -244,8 +277,9 @@ function AddQuestionForm({
             return (
               <button
                 key={d}
+                disabled={isPending}
                 onClick={() => setForm((f) => ({ ...f, difficulty: d }))}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-[500] border transition-all ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-[500] border transition-all disabled:opacity-50 ${
                   form.difficulty === d
                     ? "bg-[#1a2e44] text-white border-[#1a2e44]"
                     : "bg-white text-[#43474d] border-[#e4e2e2] hover:border-[#1a2e44]/40"
@@ -290,12 +324,31 @@ export function ChapterDetail({
 }) {
   const router = useRouter();
   const [addingQuestion, setAddingQuestion] = useState(false);
+  const [isSavingQuestion, setIsSavingQuestion] = useState(false);
+  const [pendingQuestionId, setPendingQuestionId] = useState<string | null>(
+    null,
+  );
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editingChapter, setEditingChapter] = useState(false);
   const [isPending, startTransition] = useSingleFlightTransition();
   const [confirmDeleteChapter, setConfirmDeleteChapter] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const hasQ = chapter.questions.length > 0;
+  const hasPendingQuestionArrived =
+    pendingQuestionId !== null &&
+    chapter.questions.some((q) => q.id === pendingQuestionId);
+  const isCreatingQuestion =
+    isSavingQuestion ||
+    (pendingQuestionId !== null && !hasPendingQuestionArrived);
+  const showAddQuestionForm = addingQuestion && !hasPendingQuestionArrived;
+
+  useEffect(() => {
+    if (hasPendingQuestionArrived) {
+      setPendingQuestionId(null);
+      setAddingQuestion(false);
+    }
+  }, [hasPendingQuestionArrived]);
+
   const prevChapter = book.chapters.find(
     (c) => c.number === chapter.number - 1,
   );
@@ -304,12 +357,27 @@ export function ChapterDetail({
   );
 
   const handleSaveQuestion = (form: NewQuestionForm) => {
+    if (isCreatingQuestion) return;
+    setIsSavingQuestion(true);
     startTransition(async () => {
-      const res = await createQuestion(book.id, chapter.id, form);
-      if (res.success) {
-        setAddingQuestion(false);
-      } else {
-        alert(res.error || "Erro ao criar pergunta");
+      try {
+        const res = await createQuestion(book.id, chapter.id, form);
+        if (res.success) {
+          if (res.data?.id) {
+            setPendingQuestionId(res.data.id);
+          } else {
+            setAddingQuestion(false);
+          }
+          setIsSavingQuestion(false);
+        } else {
+          setIsSavingQuestion(false);
+          setPendingQuestionId(null);
+          alert(res.error || "Erro ao criar pergunta");
+        }
+      } catch {
+        setIsSavingQuestion(false);
+        setPendingQuestionId(null);
+        alert("Erro ao criar pergunta");
       }
     });
   };
@@ -528,14 +596,23 @@ export function ChapterDetail({
         {}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] font-[500] text-[#74777d] uppercase tracking-widest">
-              {hasQ
-                ? `${chapter.questions.length} ${
-                    chapter.questions.length === 1 ? "pergunta" : "perguntas"
-                  } — tente lembrar antes de revelar`
-                : "Perguntas e respostas"}
+            <div className="flex items-center gap-2 text-[10px] font-[500] text-[#74777d] uppercase tracking-widest">
+              {isCreatingQuestion ? (
+                <>
+                  <span className="w-3 h-3 border-2 border-[#1a2e44] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-[#1a2e44]">
+                    Atualizando perguntas...
+                  </span>
+                </>
+              ) : hasQ ? (
+                `${chapter.questions.length} ${
+                  chapter.questions.length === 1 ? "pergunta" : "perguntas"
+                } — tente lembrar antes de revelar`
+              ) : (
+                "Perguntas e respostas"
+              )}
             </div>
-            {!addingQuestion && (
+            {!showAddQuestionForm && !isCreatingQuestion && (
               <button
                 onClick={() => setAddingQuestion(true)}
                 className="text-xs px-3 py-1.5 rounded-lg border border-[#e4e2e2] text-[#43474d] hover:bg-[#f5f3f3] hover:text-[#1b1c1c] transition-colors flex items-center gap-1.5"
@@ -557,30 +634,43 @@ export function ChapterDetail({
             )}
           </div>
 
-          {hasQ ? (
-            <div className="space-y-3">
+          {hasQ || isCreatingQuestion ? (
+            <div className="space-y-3" aria-busy={isCreatingQuestion}>
               {chapter.questions.map((q, i) => (
-                <QuestionCard
+                <div
                   key={q.id}
-                  bookId={book.id}
-                  question={q}
-                  index={i}
-                  lastPerf={lastPerformance(q, book)}
-                  onEdit={() => {
-                    setModalError(null);
-                    setEditingQuestion(q);
-                  }}
-                />
+                  className={
+                    isCreatingQuestion
+                      ? "opacity-60 pointer-events-none transition-opacity"
+                      : "transition-opacity"
+                  }
+                >
+                  <QuestionCard
+                    bookId={book.id}
+                    question={q}
+                    index={i}
+                    lastPerf={lastPerformance(q, book)}
+                    onEdit={() => {
+                      setModalError(null);
+                      setEditingQuestion(q);
+                    }}
+                  />
+                </div>
               ))}
 
-              {addingQuestion && (
+              {isCreatingQuestion && (
+                <QuestionCardSkeleton index={chapter.questions.length} />
+              )}
+
+              {showAddQuestionForm && (
                 <AddQuestionForm
                   onSave={handleSaveQuestion}
                   onCancel={() => setAddingQuestion(false)}
+                  isPending={isCreatingQuestion}
                 />
               )}
 
-              {!addingQuestion && (
+              {!showAddQuestionForm && !isCreatingQuestion && (
                 <button
                   onClick={() => setAddingQuestion(true)}
                   className="w-full py-3 text-xs text-[#74777d] border border-dashed border-[#c4c6cd] rounded-xl hover:border-[#1a2e44]/40 hover:text-[#1a2e44] transition-all flex items-center justify-center gap-2"
@@ -603,11 +693,11 @@ export function ChapterDetail({
             </div>
           ) : (
             <div className="space-y-3">
-              {addingQuestion ? (
+              {showAddQuestionForm ? (
                 <AddQuestionForm
                   onSave={handleSaveQuestion}
                   onCancel={() => setAddingQuestion(false)}
-                  isPending={isPending}
+                  isPending={isCreatingQuestion}
                 />
               ) : (
                 <div className="py-12 text-center bg-white rounded-xl border border-dashed border-[#c4c6cd] shadow-paper-sm">
