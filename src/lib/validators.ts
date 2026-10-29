@@ -134,6 +134,22 @@ export const PushSubscriptionEndpointSchema = z.object({
   endpoint: z.string().url(),
 });
 
+export const FeedbackCategorySchema = z.enum(["question", "suggestion", "bug"]);
+
+export const CreateFeedbackInputSchema = z.object({
+  category: FeedbackCategorySchema,
+  subject: z
+    .string()
+    .trim()
+    .min(3, "Assunto muito curto")
+    .max(150, "Assunto muito longo"),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Escreva uma mensagem um pouco mais detalhada")
+    .max(3000, "Mensagem excede o limite de 3000 caracteres"),
+});
+
 export type CreateBookInput = z.infer<typeof CreateBookInputSchema>;
 export type UpdateBookInput = z.infer<typeof UpdateBookInputSchema>;
 export type CreateChapterInput = z.infer<typeof CreateChapterInputSchema>;
@@ -157,6 +173,7 @@ export type NotificationPreferencesInput = z.infer<
   typeof NotificationPreferencesSchema
 >;
 export type PushSubscriptionInput = z.infer<typeof PushSubscriptionSchema>;
+export type CreateFeedbackInput = z.infer<typeof CreateFeedbackInputSchema>;
 
 export type ActionResult<T = void> =
   | {
