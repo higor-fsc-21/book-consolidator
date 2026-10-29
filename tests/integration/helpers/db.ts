@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import type { PrismaClient } from "@prisma/client";
+import { randomUUID } from "node:crypto"
+import type { PrismaClient } from "@prisma/client"
 
 export async function createUser(
   db: PrismaClient,
@@ -11,14 +11,14 @@ export async function createUser(
       name: overrides?.name ?? "Integration User",
       authUserId: overrides?.authUserId ?? randomUUID(),
     },
-  });
+  })
 }
 
 export async function resetDatabase(db: PrismaClient) {
-  await db.sessionAttempt.deleteMany();
-  await db.question.deleteMany();
-  await db.chapter.deleteMany();
-  await db.revisionSession.deleteMany();
-  await db.book.deleteMany();
-  await db.user.deleteMany();
+  await db.sessionAttempt.deleteMany()
+  await db.question.deleteMany()
+  await db.chapter.deleteMany()
+  await db.revisionSession.deleteMany()
+  await db.book.deleteMany()
+  await db.user.deleteMany()
 }

@@ -1,22 +1,22 @@
-"use client";
+"use client" /* Header */ /* Content */ /* Footer */
 
-import { useState } from "react";
-import type { Question, Difficulty } from "@/domain/types";
-import type { UpdateQuestionInput } from "@/lib/validators";
+import { useState } from "react"
+import type { Question, Difficulty } from "@/domain/types"
+import type { UpdateQuestionInput } from "@/lib/validators"
 
 interface QuestionModalProps {
-  question: Question;
-  onSave: (updates: UpdateQuestionInput) => Promise<void> | void;
-  onClose: () => void;
-  isPending?: boolean;
-  errorMessage?: string | null;
+  question: Question
+  onSave: (updates: UpdateQuestionInput) => Promise<void> | void
+  onClose: () => void
+  isPending?: boolean
+  errorMessage?: string | null
 }
 
 const difficultyOptions: { value: Difficulty; label: string }[] = [
   { value: "easy", label: "Fácil" },
   { value: "medium", label: "Média" },
   { value: "hard", label: "Difícil" },
-];
+]
 
 export function QuestionModal({
   question,
@@ -25,25 +25,25 @@ export function QuestionModal({
   isPending = false,
   errorMessage,
 }: QuestionModalProps) {
-  const [text, setText] = useState(question.text);
-  const [answer, setAnswer] = useState(question.answer);
-  const [difficulty, setDifficulty] = useState<Difficulty>(question.difficulty);
+  const [text, setText] = useState(question.text)
+  const [answer, setAnswer] = useState(question.answer)
+  const [difficulty, setDifficulty] = useState<Difficulty>(question.difficulty)
 
-  const canSave = text.trim().length > 0 && answer.trim().length > 0;
+  const canSave = text.trim().length > 0 && answer.trim().length > 0
 
   const handleSave = () => {
-    if (!canSave || isPending) return;
+    if (!canSave || isPending) return
     onSave({
       text: text.trim(),
       answer: answer.trim(),
       difficulty,
-    });
-  };
+    })
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-paper-lg border border-[#e4e2e2] overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
+        {}
         <div className="px-6 py-5 border-b border-[#e4e2e2] flex items-center justify-between">
           <div>
             <h2
@@ -75,7 +75,7 @@ export function QuestionModal({
           </button>
         </div>
 
-        {/* Content */}
+        {}
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
           {errorMessage && (
             <div className="text-sm text-[#ba1a1a] bg-[#ba1a1a]/8 border border-[#ba1a1a]/20 rounded-lg px-3.5 py-2.5">
@@ -132,7 +132,7 @@ export function QuestionModal({
           </div>
         </div>
 
-        {/* Footer */}
+        {}
         <div className="px-6 py-4 border-t border-[#e4e2e2] flex gap-3">
           <button
             onClick={onClose}
@@ -154,5 +154,5 @@ export function QuestionModal({
         </div>
       </div>
     </div>
-  );
+  )
 }

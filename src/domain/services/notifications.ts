@@ -1,20 +1,20 @@
-import "server-only";
-import webpush from "web-push";
-import { db } from "@/lib/db";
-import { startOfUtcDay } from "../scheduling";
+import "server-only"
+import webpush from "web-push"
+import { db } from "@/lib/db"
+import { startOfUtcDay } from "../scheduling"
 import type {
   NotificationPreferencesInput,
   PushSubscriptionInput,
-} from "@/lib/validators";
+} from "@/lib/validators"
 
 const isValidTimezone = (timezone: string): boolean => {
   try {
-    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
-    return true;
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format()
+    return true
   } catch {
-    return false;
+    return false
   }
-};
+}
 
 export async function getNotificationPreferences(userId: string) {
   const user = await db.user.findUniqueOrThrow({
@@ -25,14 +25,14 @@ export async function getNotificationPreferences(userId: string) {
       timezone: true,
       _count: { select: { pushSubscriptions: true } },
     },
-  });
+  })
 
   return {
     enabled: user.revisionRemindersEnabled,
     reminderTimeMinutes: user.reminderTimeMinutes,
     timezone: user.timezone,
     subscriptionCount: user._count.pushSubscriptions,
-  };
+  }
 }
 
 export async function updateNotificationPreferences(
@@ -40,7 +40,7 @@ export async function updateNotificationPreferences(
   data: NotificationPreferencesInput,
 ) {
   if (!isValidTimezone(data.timezone)) {
-    throw new Error("Fuso horário inválido");
+    throw new Error("Fuso horário inválido")
   }
 
   return db.user.update({
@@ -55,7 +55,7 @@ export async function updateNotificationPreferences(
       reminderTimeMinutes: true,
       timezone: true,
     },
-  });
+  })
 }
 
 export async function savePushSubscription(
@@ -75,26 +75,26 @@ export async function savePushSubscription(
       p256dh: data.keys.p256dh,
       auth: data.keys.auth,
     },
-  });
+  })
 }
 
 export async function removePushSubscription(userId: string, endpoint: string) {
   return db.pushSubscription.deleteMany({
     where: { userId, endpoint },
-  });
+  })
 }
 
 const dateKey = (date: Date): string =>
-  startOfUtcDay(date).toISOString().slice(0, 10);
+  startOfUtcDay(date).toISOString().slice(0, 10)
 
 const localHour = (date: Date, timezone: string): number => {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     hour: "numeric",
     hour12: false,
-  }).formatToParts(date);
-  return Number(parts.find((part) => part.type === "hour")?.value ?? 0);
-};
+  }).formatToParts(date)
+  return Number(parts.find((part) => part.type === "hour")?.value ?? 0)
+}
 
 const localDateKey = (date: Date, timezone: string): string =>
   new Intl.DateTimeFormat("en-CA", {
@@ -102,35 +102,35 @@ const localDateKey = (date: Date, timezone: string): string =>
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(date);
+  }).format(date)
 
 const isDueForLocalDate = (
   revisionDate: Date,
   now: Date,
   timezone: string,
-): boolean => dateKey(revisionDate) <= localDateKey(now, timezone);
+): boolean => dateKey(revisionDate) <= localDateKey(now, timezone)
 
 function configureWebPush() {
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT;
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const privateKey = process.env.VAPID_PRIVATE_KEY
+  const subject = process.env.VAPID_SUBJECT
   if (!publicKey || !privateKey || !subject) {
-    throw new Error("Web Push não está configurado");
+    throw new Error("Web Push não está configurado")
   }
-  webpush.setVapidDetails(subject, publicKey, privateKey);
+  webpush.setVapidDetails(subject, publicKey, privateKey)
 }
 
 export interface NotificationRunResult {
-  considered: number;
-  sent: number;
-  skipped: number;
-  failed: number;
+  considered: number
+  sent: number
+  skipped: number
+  failed: number
 }
 
 export async function sendDueRevisionNotifications(
   now: Date = new Date(),
 ): Promise<NotificationRunResult> {
-  configureWebPush();
+  configureWebPush()
   const users = await db.user.findMany({
     where: {
       deletedAt: null,
@@ -154,21 +154,21 @@ export async function sendDueRevisionNotifications(
         select: { id: true, title: true, nextRevision: true },
       },
     },
-  });
+  })
 
   const result: NotificationRunResult = {
     considered: 0,
     sent: 0,
     skipped: 0,
     failed: 0,
-  };
+  }
 
   for (const user of users) {
     if (
       localHour(now, user.timezone) !==
       Math.floor(user.reminderTimeMinutes / 60)
     ) {
-      continue;
+      continue
     }
 
     for (const book of user.books) {
@@ -176,13 +176,13 @@ export async function sendDueRevisionNotifications(
         !book.nextRevision ||
         !isDueForLocalDate(book.nextRevision, now, user.timezone)
       ) {
-        continue;
+        continue
       }
 
-      result.considered += 1;
-      const revisionDate = dateKey(book.nextRevision);
-      const dedupeKey = `${user.id}:${book.id}:web_push:${revisionDate}`;
-      let delivery;
+      result.considered += 1
+      const revisionDate = dateKey(book.nextRevision)
+      const dedupeKey = `${user.id}:${book.id}:web_push:${revisionDate}`
+      let delivery
       try {
         delivery = await db.notificationDelivery.create({
           data: {
@@ -193,7 +193,7 @@ export async function sendDueRevisionNotifications(
             dedupeKey,
             attemptCount: 1,
           },
-        });
+        })
       } catch (error) {
         if (
           error &&
@@ -208,26 +208,26 @@ export async function sendDueRevisionNotifications(
               attemptCount: { increment: 1 },
               lastError: null,
             },
-          });
+          })
           if (retry.count === 0) {
-            result.skipped += 1;
-            continue;
+            result.skipped += 1
+            continue
           }
           delivery = await db.notificationDelivery.findUniqueOrThrow({
             where: { dedupeKey },
-          });
+          })
         } else {
-          throw error;
+          throw error
         }
       }
 
-      let delivered = 0;
-      let lastError: string | null = null;
+      let delivered = 0
+      let lastError: string | null = null
       const payload = JSON.stringify({
         title: "Hora de revisar",
         body: `Retome ${book.title} no seu ritmo.`,
         url: `/livros/${book.id}`,
-      });
+      })
 
       for (const subscription of user.pushSubscriptions) {
         try {
@@ -237,19 +237,19 @@ export async function sendDueRevisionNotifications(
               keys: { p256dh: subscription.p256dh, auth: subscription.auth },
             },
             payload,
-          );
-          delivered += 1;
+          )
+          delivered += 1
         } catch (error) {
           const statusCode =
             error && typeof error === "object" && "statusCode" in error
               ? error.statusCode
-              : undefined;
+              : undefined
           if (statusCode === 404 || statusCode === 410) {
             await db.pushSubscription.delete({
               where: { id: subscription.id },
-            });
+            })
           }
-          lastError = statusCode ? `http_${statusCode}` : "send_failed";
+          lastError = statusCode ? `http_${statusCode}` : "send_failed"
         }
       }
 
@@ -257,8 +257,8 @@ export async function sendDueRevisionNotifications(
         await db.notificationDelivery.update({
           where: { id: delivery.id },
           data: { status: "sent", sentAt: new Date() },
-        });
-        result.sent += 1;
+        })
+        result.sent += 1
       } else {
         await db.notificationDelivery.update({
           where: { id: delivery.id },
@@ -266,11 +266,11 @@ export async function sendDueRevisionNotifications(
             status: "failed",
             lastError: lastError ?? "no_subscription_delivered",
           },
-        });
-        result.failed += 1;
+        })
+        result.failed += 1
       }
     }
   }
 
-  return result;
+  return result
 }

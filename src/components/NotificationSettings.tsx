@@ -1,148 +1,146 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"
 import {
   getNotificationPreferencesAction,
   removePushSubscriptionAction,
   savePushSubscriptionAction,
   updateNotificationPreferencesAction,
-} from "@/app/actions/notifications";
-import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
+} from "@/app/actions/notifications"
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition"
 
-const DEFAULT_TIMEZONE = "UTC";
-const DEFAULT_TIME = 9 * 60;
+const DEFAULT_TIMEZONE = "UTC"
+const DEFAULT_TIME = 9 * 60
 
 function decodeVapidKey(value: string) {
-  const padding = "=".repeat((4 - (value.length % 4)) % 4);
-  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  return Uint8Array.from(rawData, (character) => character.charCodeAt(0));
+  const padding = "=".repeat((4 - (value.length % 4)) % 4)
+  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/")
+  const rawData = window.atob(base64)
+  return Uint8Array.from(rawData, (character) => character.charCodeAt(0))
 }
 
 function readTime(minutes: number) {
   return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(
     minutes % 60,
-  ).padStart(2, "0")}`;
+  ).padStart(2, "0")}`
 }
 
 function readMinutes(value: string) {
-  const [hours, minutes] = value.split(":").map(Number);
-  return hours * 60 + minutes;
+  const [hours, minutes] = value.split(":").map(Number)
+  return hours * 60 + minutes
 }
 
 export function NotificationSettings() {
-  const [enabled, setEnabled] = useState(false);
-  const [time, setTime] = useState(readTime(DEFAULT_TIME));
+  const [enabled, setEnabled] = useState(false)
+  const [time, setTime] = useState(readTime(DEFAULT_TIME))
   const [timezone, setTimezone] = useState(
     Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIMEZONE,
-  );
-  const [subscriptionCount, setSubscriptionCount] = useState(0);
-  const [message, setMessage] = useState<string | null>(null);
-  const [isPending, startTransition] = useSingleFlightTransition();
+  )
+  const [subscriptionCount, setSubscriptionCount] = useState(0)
+  const [message, setMessage] = useState<string | null>(null)
+  const [isPending, startTransition] = useSingleFlightTransition()
 
   useEffect(() => {
     void getNotificationPreferencesAction().then((result) => {
       if (!result.success) {
-        setMessage(result.error);
-        return;
+        setMessage(result.error)
+        return
       }
       if (!result.data) {
-        setMessage("Preferências indisponíveis");
-        return;
+        setMessage("Preferências indisponíveis")
+        return
       }
-      setEnabled(result.data.enabled);
-      setTime(readTime(result.data.reminderTimeMinutes));
-      setTimezone(result.data.timezone);
-      setSubscriptionCount(result.data.subscriptionCount);
-    });
-  }, []);
+      setEnabled(result.data.enabled)
+      setTime(readTime(result.data.reminderTimeMinutes))
+      setTimezone(result.data.timezone)
+      setSubscriptionCount(result.data.subscriptionCount)
+    })
+  }, [])
 
   const savePreferences = (nextEnabled: boolean) => {
-    setMessage(null);
+    setMessage(null)
     startTransition(async () => {
       const result = await updateNotificationPreferencesAction({
         enabled: nextEnabled,
         reminderTimeMinutes: readMinutes(time),
         timezone,
-      });
-      if (!result.success) setMessage(result.error);
-    });
-  };
+      })
+      if (!result.success) setMessage(result.error)
+    })
+  }
 
   const enableNotifications = () => {
-    setMessage(null);
+    setMessage(null)
     startTransition(async () => {
       if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-        setMessage("Este navegador não oferece notificações push.");
-        return;
+        setMessage("Este navegador não oferece notificações push.")
+        return
       }
       if (!window.isSecureContext) {
-        setMessage("Notificações exigem uma conexão HTTPS.");
-        return;
+        setMessage("Notificações exigem uma conexão HTTPS.")
+        return
       }
 
-      const permission = await Notification.requestPermission();
+      const permission = await Notification.requestPermission()
       if (permission !== "granted") {
-        setMessage("A permissão foi recusada. O lembrete continuará no app.");
-        return;
+        setMessage("A permissão foi recusada. O lembrete continuará no app.")
+        return
       }
 
-      const registration = await navigator.serviceWorker.ready;
-      const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      const registration = await navigator.serviceWorker.ready
+      const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
       if (!applicationServerKey) {
-        setMessage("As notificações ainda não estão configuradas no servidor.");
-        return;
+        setMessage("As notificações ainda não estão configuradas no servidor.")
+        return
       }
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: decodeVapidKey(applicationServerKey),
-      });
-      const result = await savePushSubscriptionAction(subscription.toJSON());
+      })
+      const result = await savePushSubscriptionAction(subscription.toJSON())
       if (!result.success) {
-        setMessage(result.error);
-        return;
+        setMessage(result.error)
+        return
       }
 
-      setSubscriptionCount(1);
-      setEnabled(true);
+      setSubscriptionCount(1)
+      setEnabled(true)
       await updateNotificationPreferencesAction({
         enabled: true,
         reminderTimeMinutes: readMinutes(time),
         timezone,
-      });
-      setMessage("Notificações ativadas.");
-    });
-  };
+      })
+      setMessage("Notificações ativadas.")
+    })
+  }
 
   const disableNotifications = () => {
-    setMessage(null);
+    setMessage(null)
     startTransition(async () => {
-      const registration = await navigator.serviceWorker.ready.catch(
-        () => null,
-      );
+      const registration = await navigator.serviceWorker.ready.catch(() => null)
       const subscription = await registration?.pushManager
         .getSubscription()
-        .catch(() => null);
+        .catch(() => null)
       if (subscription) {
-        await removePushSubscriptionAction({ endpoint: subscription.endpoint });
-        await subscription.unsubscribe();
+        await removePushSubscriptionAction({ endpoint: subscription.endpoint })
+        await subscription.unsubscribe()
       }
       const result = await updateNotificationPreferencesAction({
         enabled: false,
         reminderTimeMinutes: readMinutes(time),
         timezone,
-      });
+      })
       if (!result.success) {
-        setMessage(result.error);
-        return;
+        setMessage(result.error)
+        return
       }
-      setEnabled(false);
-      setSubscriptionCount(0);
-      setMessage("Notificações desativadas.");
-    });
-  };
+      setEnabled(false)
+      setSubscriptionCount(0)
+      setMessage("Notificações desativadas.")
+    })
+  }
 
-  const saveSchedule = () => savePreferences(enabled);
+  const saveSchedule = () => savePreferences(enabled)
 
   return (
     <section className="bg-white rounded-xl p-6 shadow-paper max-w-xl">
@@ -222,5 +220,5 @@ export function NotificationSettings() {
         </p>
       )}
     </section>
-  );
+  )
 }

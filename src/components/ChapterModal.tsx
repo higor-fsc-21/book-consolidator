@@ -1,15 +1,15 @@
-"use client";
+"use client" /* Header */ /* Content */ /* Footer */
 
-import { useState } from "react";
-import type { Chapter } from "@/domain/types";
-import type { UpdateChapterInput } from "@/lib/validators";
+import { useState } from "react"
+import type { Chapter } from "@/domain/types"
+import type { UpdateChapterInput } from "@/lib/validators"
 
 interface ChapterModalProps {
-  chapter: Chapter;
-  onSave: (updates: UpdateChapterInput) => Promise<void> | void;
-  onClose: () => void;
-  isPending?: boolean;
-  errorMessage?: string | null;
+  chapter: Chapter
+  onSave: (updates: UpdateChapterInput) => Promise<void> | void
+  onClose: () => void
+  isPending?: boolean
+  errorMessage?: string | null
 }
 
 export function ChapterModal({
@@ -19,25 +19,25 @@ export function ChapterModal({
   isPending = false,
   errorMessage,
 }: ChapterModalProps) {
-  const [title, setTitle] = useState(chapter.title);
-  const [description, setDescription] = useState(chapter.description ?? "");
-  const [summary, setSummary] = useState(chapter.summary ?? "");
+  const [title, setTitle] = useState(chapter.title)
+  const [description, setDescription] = useState(chapter.description ?? "")
+  const [summary, setSummary] = useState(chapter.summary ?? "")
 
-  const canSave = title.trim().length > 0;
+  const canSave = title.trim().length > 0
 
   const handleSave = () => {
-    if (!canSave || isPending) return;
+    if (!canSave || isPending) return
     onSave({
       title: title.trim(),
       description: description.trim() ? description.trim() : null,
       summary: summary.trim() ? summary.trim() : null,
-    });
-  };
+    })
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-paper-lg border border-[#e4e2e2] overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
+        {}
         <div className="px-6 py-5 border-b border-[#e4e2e2] flex items-center justify-between">
           <div>
             <h2
@@ -69,7 +69,7 @@ export function ChapterModal({
           </button>
         </div>
 
-        {/* Content */}
+        {}
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
           {errorMessage && (
             <div className="text-sm text-[#ba1a1a] bg-[#ba1a1a]/8 border border-[#ba1a1a]/20 rounded-lg px-3.5 py-2.5">
@@ -117,7 +117,7 @@ export function ChapterModal({
           </div>
         </div>
 
-        {/* Footer */}
+        {}
         <div className="px-6 py-4 border-t border-[#e4e2e2] flex gap-3">
           <button
             onClick={onClose}
@@ -139,5 +139,5 @@ export function ChapterModal({
         </div>
       </div>
     </div>
-  );
+  )
 }

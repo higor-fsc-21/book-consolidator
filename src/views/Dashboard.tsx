@@ -1,9 +1,9 @@
-"use client"; /* Header */ /* Primary row */ /* Currently reading */ /* Recommended for revision */ /* Stats row */ /* Annual goal progress */ /* Recent revision timeline */ /* Vertical line */ /* Dot */ /* Content */
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import type { Book } from "@/domain/types";
-import { ANNUAL_GOAL, modeLabels } from "@/domain/constants";
+"use client" /* Header */ /* Primary row */ /* Currently reading */ /* Recommended for revision */ /* Stats row */ /* Annual goal progress */ /* Recent revision timeline */ /* Vertical line */ /* Dot */ /* Content */
+import { useState } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import type { Book } from "@/domain/types"
+import { ANNUAL_GOAL, modeLabels } from "@/domain/constants"
 import {
   getReadingBook,
   getCompletedBooks,
@@ -17,14 +17,11 @@ import {
   effectiveConsolidationState,
   importanceLabel,
   isRevisionDueToday,
-} from "@/domain/derived";
-import { utcDayDiff } from "@/domain/scheduling";
-import {
-  cancelSessionAction,
-  startSessionAction,
-} from "@/app/actions/sessions";
-import { RevisionQueueButton } from "@/components/RevisionQueueButton";
-import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
+} from "@/domain/derived"
+import { utcDayDiff } from "@/domain/scheduling"
+import { cancelSessionAction, startSessionAction } from "@/app/actions/sessions"
+import { RevisionQueueButton } from "@/components/RevisionQueueButton"
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition"
 
 function BookCover({
   gradient,
@@ -32,14 +29,14 @@ function BookCover({
   title,
   size = "md",
 }: {
-  gradient: [string, string];
-  coverUrl?: string | null;
-  title?: string;
-  size?: "sm" | "md" | "lg";
+  gradient: [string, string]
+  coverUrl?: string | null
+  title?: string
+  size?: "sm" | "md" | "lg"
 }) {
   const dims =
-    size === "sm" ? "w-8 h-11" : size === "md" ? "w-12 h-17" : "w-20 h-28";
-  const imgSizes = size === "sm" ? "32px" : size === "md" ? "48px" : "80px";
+    size === "sm" ? "w-8 h-11" : size === "md" ? "w-12 h-17" : "w-20 h-28"
+  const imgSizes = size === "sm" ? "32px" : size === "md" ? "48px" : "80px"
 
   if (coverUrl) {
     return (
@@ -59,7 +56,7 @@ function BookCover({
           sizes={imgSizes}
         />
       </div>
-    );
+    )
   }
 
   return (
@@ -72,7 +69,7 @@ function BookCover({
         minHeight: size === "sm" ? "44px" : size === "md" ? "68px" : "112px",
       }}
     />
-  );
+  )
 }
 
 function ScoreChip({ score }: { score: number }) {
@@ -81,65 +78,68 @@ function ScoreChip({ score }: { score: number }) {
       ? "text-[#2a5628] bg-[#8ba889]/20"
       : score >= 60
         ? "text-[#7a5a00] bg-[#f2d492]/30"
-        : "text-[#ba1a1a] bg-[#ba1a1a]/10";
+        : "text-[#ba1a1a] bg-[#ba1a1a]/10"
   return (
     <span
       className={`text-[11px] font-mono font-[500] px-2 py-0.5 rounded-full ${color}`}
     >
       {score}%
     </span>
-  );
+  )
 }
 
 export function Dashboard({
   books,
   dateStr,
+  annualGoal = ANNUAL_GOAL,
 }: {
-  books: Book[];
-  dateStr: string;
+  books: Book[]
+  dateStr: string
+  annualGoal?: number
 }) {
-  const [isStartingSession, startTransition] = useSingleFlightTransition();
-  const [, startCancelTransition] = useSingleFlightTransition();
+  const safeAnnualGoal = Math.max(1, annualGoal)
+  const [isStartingSession, startTransition] = useSingleFlightTransition()
+  const [, startCancelTransition] = useSingleFlightTransition()
   const [cancelingSessionId, setCancelingSessionId] = useState<string | null>(
     null,
-  );
-  const [cancelError, setCancelError] = useState<string | null>(null);
-  const readingBook = getReadingBook(books);
-  const completed = getCompletedBooks(books);
-  const recommendedBook = getRecommendedBook(books);
-  const pending = pendingSessionsFor(books);
-  const bookById = new Map(books.map((b) => [b.id, b]));
+  )
+  const [cancelError, setCancelError] = useState<string | null>(null)
+  const readingBook = getReadingBook(books)
+  const completed = getCompletedBooks(books)
+  const recommendedBook = getRecommendedBook(books)
+  const pending = pendingSessionsFor(books)
+  const bookById = new Map(books.map((b) => [b.id, b]))
 
   const daysSinceRevision = recommendedBook?.lastRevision
     ? daysSince(recommendedBook.lastRevision)
-    : null;
+    : null
 
-  const progress = readingBook ? readingProgress(readingBook) : 0;
-  const recAvgScore = recommendedBook ? avgScore(recommendedBook) : null;
-  const revisionTimeline = timeline(books);
+  const progress = readingBook ? readingProgress(readingBook) : 0
+  const recAvgScore = recommendedBook ? avgScore(recommendedBook) : null
+  const revisionTimeline = timeline(books)
   const recommendedDueToday = recommendedBook
     ? isRevisionDueToday(recommendedBook)
-    : false;
+    : false
   const daysUntilRevision =
     recommendedBook?.nextRevision && !recommendedDueToday
       ? utcDayDiff(recommendedBook.nextRevision, new Date())
-      : null;
+      : null
   const dueLabel =
     daysUntilRevision === null || daysUntilRevision <= 0
       ? null
       : daysUntilRevision === 1
         ? "amanhã"
-        : `em ${daysUntilRevision} dias`;
+        : `em ${daysUntilRevision} dias`
 
   const handleCancelSession = (sessionId: string) => {
-    setCancelError(null);
-    setCancelingSessionId(sessionId);
+    setCancelError(null)
+    setCancelingSessionId(sessionId)
     startCancelTransition(async () => {
-      const res = await cancelSessionAction(sessionId);
-      if (!res.success) setCancelError(res.error);
-      setCancelingSessionId(null);
-    });
-  };
+      const res = await cancelSessionAction(sessionId)
+      if (!res.success) setCancelError(res.error)
+      setCancelingSessionId(null)
+    })
+  }
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 p-4 sm:p-6 lg:p-8">
@@ -315,7 +315,7 @@ export function Dashboard({
                 disabled={isStartingSession}
                 onClick={() =>
                   startTransition(async () => {
-                    await startSessionAction(recommendedBook.id);
+                    await startSessionAction(recommendedBook.id)
                   })
                 }
                 className="text-xs px-4 py-2 rounded-lg bg-[#1a2e44] text-white font-[600] hover:bg-[#2d4460] transition-colors disabled:opacity-50 flex items-center gap-2"
@@ -343,9 +343,9 @@ export function Dashboard({
           </div>
           <div className="space-y-3">
             {pending.map((session) => {
-              const book = bookById.get(session.bookId);
-              if (!book) return null;
-              const canceling = cancelingSessionId === session.id;
+              const book = bookById.get(session.bookId)
+              if (!book) return null
+              const canceling = cancelingSessionId === session.id
               return (
                 <div
                   key={session.id}
@@ -381,7 +381,7 @@ export function Dashboard({
                     </Link>
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
           {cancelError && (
@@ -397,8 +397,8 @@ export function Dashboard({
         {[
           {
             label: "Meta anual",
-            value: `${completed.length} / ${ANNUAL_GOAL}`,
-            sub: `${Math.round((completed.length / ANNUAL_GOAL) * 100)}% concluído`,
+            value: `${completed.length} / ${safeAnnualGoal}`,
+            sub: `${Math.round((completed.length / safeAnnualGoal) * 100)}% concluído`,
           },
           {
             label: "Em consolidação",
@@ -408,7 +408,7 @@ export function Dashboard({
           {
             label: "Livros lidos",
             value: `${completed.length}`,
-            sub: `de ${ANNUAL_GOAL} na meta de 2026`,
+            sub: `de ${safeAnnualGoal} na meta de 2026`,
           },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl p-5 shadow-paper">
@@ -432,16 +432,19 @@ export function Dashboard({
       <div className="bg-white rounded-xl p-6 shadow-paper">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[10px] text-[#74777d] font-[500] uppercase tracking-widest">
-            {Math.round((completed.length / ANNUAL_GOAL) * 100)}% da meta anual
+            {Math.round((completed.length / safeAnnualGoal) * 100)}% da meta
+            anual
           </div>
           <div className="text-xs text-[#74777d] font-mono">
-            {completed.length} / {ANNUAL_GOAL} livros
+            {completed.length} / {safeAnnualGoal} livros
           </div>
         </div>
         <div className="h-[2px] bg-[#e4e2e2] rounded-full overflow-hidden">
           <div
             className="h-full bg-[#8ba889] rounded-full transition-all"
-            style={{ width: `${(completed.length / ANNUAL_GOAL) * 100}%` }}
+            style={{
+              width: `${Math.min(100, (completed.length / safeAnnualGoal) * 100)}%`,
+            }}
           />
         </div>
       </div>
@@ -463,14 +466,14 @@ export function Dashboard({
 
             <div className="space-y-0">
               {revisionTimeline.map((item, idx) => {
-                const revDate = new Date(item.date);
+                const revDate = new Date(item.date)
                 const dateLabel = revDate.toLocaleDateString("pt-BR", {
                   day: "2-digit",
                   month: "short",
                   year: "2-digit",
                   timeZone: "UTC",
-                });
-                const isFirst = idx === 0;
+                })
+                const isFirst = idx === 0
 
                 return (
                   <div
@@ -513,12 +516,12 @@ export function Dashboard({
                       </div>
                     </Link>
                   </div>
-                );
+                )
               })}
             </div>
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }

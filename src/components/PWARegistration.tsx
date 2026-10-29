@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useEffect } from "react";
+import { useEffect } from "react"
 
 export function PWARegistration() {
   useEffect(() => {
@@ -8,11 +8,11 @@ export function PWARegistration() {
       process.env.NODE_ENV !== "production" ||
       !("serviceWorker" in navigator)
     ) {
-      return;
+      return
     }
 
-    void navigator.serviceWorker.register("/sw.js", { scope: "/" });
-  }, []);
+    void navigator.serviceWorker.register("/sw.js", { scope: "/" })
+  }, [])
 
-  return null;
+  return null
 }

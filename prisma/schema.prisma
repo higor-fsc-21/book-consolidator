@@ -63,6 +63,8 @@ model User {
   revisionRemindersEnabled Boolean @default(false)
   reminderTimeMinutes     Int     @default(540)
   timezone                String  @default("UTC")
+  annualBooksGoal         Int     @default(12)
+  weeklyRevisionsGoal     Int     @default(3)
 
   books                 Book[]
   sessions              RevisionSession[]

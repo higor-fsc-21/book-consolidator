@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { BrandMark } from "@/components/BrandMark";
+import Link from "next/link"
+import { BrandMark } from "@/components/BrandMark"
 
 export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
   return (
@@ -99,5 +99,5 @@ export function Login({ onLogin }: { onLogin: () => Promise<void> }) {
         </div>
       </div>
     </main>
-  );
+  )
 }

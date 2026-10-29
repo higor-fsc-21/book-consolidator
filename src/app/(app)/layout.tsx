@@ -1,18 +1,18 @@
-import { Sidebar } from "@/components/Sidebar";
-import { getCurrentUser } from "@/lib/auth";
+import { Sidebar } from "@/components/Sidebar"
+import { getCurrentUser } from "@/lib/auth"
 
 export default async function AppLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
-  let user: { name: string; email: string } | undefined;
+  let user: { name: string; email: string } | undefined
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser()
     user = {
       name: currentUser.name,
       email: currentUser.email,
-    };
+    }
   } catch {
     // Falls back gracefully if session is unauthenticated
   }
@@ -24,5 +24,5 @@ export default async function AppLayout({
         {children}
       </main>
     </div>
-  );
+  )
 }

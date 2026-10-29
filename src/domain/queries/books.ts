@@ -1,14 +1,14 @@
-import "server-only";
-import { unstable_cache } from "next/cache";
-import { db } from "@/lib/db";
-import { booksTag, bookTag } from "@/lib/cache-tags";
+import "server-only"
+import { unstable_cache } from "next/cache"
+import { db } from "@/lib/db"
+import { booksTag, bookTag } from "@/lib/cache-tags"
 import {
   bookInclude,
   bookSummaryInclude,
   reviveBook,
   reviveBookSummary,
-} from "./shared";
-import type { Book, BookSummary } from "../types";
+} from "./shared"
+import type { Book, BookSummary } from "../types"
 
 export async function getBooksForUser(userId: string): Promise<Book[]> {
   const raw = await unstable_cache(
@@ -20,8 +20,8 @@ export async function getBooksForUser(userId: string): Promise<Book[]> {
       }),
     ["books-for-user"],
     { tags: [booksTag(userId)] },
-  )(userId);
-  return raw.map(reviveBook);
+  )(userId)
+  return raw.map(reviveBook)
 }
 
 export async function getBookSummariesForUser(
@@ -36,8 +36,8 @@ export async function getBookSummariesForUser(
       }),
     ["book-summaries-for-user"],
     { tags: [booksTag(userId)] },
-  )(userId);
-  return raw.map(reviveBookSummary);
+  )(userId)
+  return raw.map(reviveBookSummary)
 }
 
 export async function getBookWithEverything(
@@ -52,8 +52,8 @@ export async function getBookWithEverything(
       }),
     ["book-with-everything"],
     { tags: [booksTag(userId), bookTag(bookId)] },
-  )(userId, bookId);
-  return raw ? reviveBook(raw) : null;
+  )(userId, bookId)
+  return raw ? reviveBook(raw) : null
 }
 
 export async function getChapterWithQuestions(
@@ -61,7 +61,7 @@ export async function getChapterWithQuestions(
   bookId: string,
   chapterId: string,
 ) {
-  const book = await getBookWithEverything(userId, bookId);
-  const chapter = book?.chapters.find((c) => c.id === chapterId) ?? null;
-  return { book, chapter };
+  const book = await getBookWithEverything(userId, bookId)
+  const chapter = book?.chapters.find((c) => c.id === chapterId) ?? null
+  return { book, chapter }
 }

@@ -1,9 +1,9 @@
-import "server-only";
-import { db } from "@/lib/db";
+import "server-only"
+import { db } from "@/lib/db"
 import {
   rebuildRevisionQueue as buildRevisionQueue,
   type RevisionQueueBook,
-} from "../scheduling";
+} from "../scheduling"
 
 export async function rebuildRevisionQueueForUser(
   userId: string,
@@ -25,7 +25,7 @@ export async function rebuildRevisionQueueForUser(
         nextRevision: true,
         importance: true,
       },
-    });
+    })
 
     const queue = buildRevisionQueue(
       books.map(
@@ -38,15 +38,15 @@ export async function rebuildRevisionQueueForUser(
         }),
       ),
       now,
-    );
+    )
 
     for (const entry of queue) {
       await tx.book.update({
         where: { id: entry.bookId },
         data: { nextRevision: entry.revisionDate },
-      });
+      })
     }
 
-    return queue;
-  });
+    return queue
+  })
 }

@@ -139,7 +139,7 @@ export function BookModal({
       <div
         className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"
         onClick={() => {
-          if (!isPending) onClose();
+          if (!isPending) onClose()
         }}
       />
 
