@@ -1,4 +1,4 @@
-.PHONY: help install dev build start up down logs db-up db-down db-migrate db-seed db-studio typecheck format
+.PHONY: help install dev build start up down logs db-up db-down db-migrate db-seed db-studio typecheck format wt-new wt-setup wt-down wt-rm wt-list wt-hook
 
 COMPOSE ?= docker compose
 COMPOSE_DEV = $(COMPOSE) -f docker-compose.dev.yml
@@ -19,7 +19,13 @@ help:
 		'db-seed      Seed the local database' \
 		'db-studio    Open Prisma Studio' \
 		'typecheck    Run the TypeScript checker' \
-		'format       Format the project'
+		'format       Format the project' \
+		'wt-new       Create a worktree + isolated env: make wt-new BRANCH=feat/x [BASE=main]' \
+		'wt-setup     (Re)provision the current worktree env' \
+		'wt-down      Stop the current worktree containers' \
+		'wt-rm        Delete the current worktree, its DB and containers' \
+		'wt-list      List worktrees with ports and DB state' \
+		'wt-hook      Auto-provision any worktree created with git worktree add'
 
 install:
 	$(PNPM) install
@@ -87,3 +93,23 @@ typecheck:
 
 format:
 	$(PNPM) format
+
+# Worktree environments
+
+wt-new:
+	scripts/wt.sh new $(BRANCH) $(BASE)
+
+wt-setup:
+	scripts/wt.sh setup
+
+wt-down:
+	scripts/wt.sh down
+
+wt-rm:
+	scripts/wt.sh rm
+
+wt-list:
+	scripts/wt.sh list
+
+wt-hook:
+	scripts/wt.sh install-hook
