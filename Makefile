@@ -20,7 +20,7 @@ help:
 		'db-studio    Open Prisma Studio' \
 		'typecheck    Run the TypeScript checker' \
 		'format       Format the project' \
-		'wt-new       Create a worktree + isolated env: make wt-new BRANCH=feat/x [BASE=main]' \
+		'wt-new       Create a worktree + isolated env: make wt-new feat/x [base] [HOST=1]' \
 		'wt-setup     (Re)provision the current worktree env' \
 		'wt-down      Stop the current worktree containers' \
 		'wt-rm        Delete the current worktree, its DB and containers' \
@@ -96,8 +96,14 @@ format:
 
 # Worktree environments
 
+# make wt-new <branch> [base] [HOST=1]  (extra words are swallowed as no-op targets)
+ifeq ($(firstword $(MAKECMDGOALS)),wt-new)
+WT_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+$(eval $(WT_ARGS):;@:)
+endif
+
 wt-new:
-	scripts/wt.sh new $(BRANCH) $(BASE)
+	scripts/wt.sh new $(WT_ARGS) $(if $(HOST),--host)
 
 wt-setup:
 	scripts/wt.sh setup

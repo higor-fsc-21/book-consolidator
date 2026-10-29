@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Per-worktree environment: own Postgres container, ports, .env, deps, migrations, seed.
 #
-#   scripts/wt.sh new <branch> [base]   create worktree + full environment
-#   scripts/wt.sh setup [--no-seed]     (re)provision the current worktree (idempotent)
+#   scripts/wt.sh new <branch> [base] [--host] [--no-seed]
+#                                       create worktree + full environment
+#   scripts/wt.sh setup [--host] [--no-seed]
+#                                       (re)provision the current worktree (idempotent)
+#     app runs in Docker (like `make up`); --host skips it so you can run `pnpm dev`
 #   scripts/wt.sh down                  stop this worktree's containers (keeps data)
 #   scripts/wt.sh rm [-y]               drop containers + data, remove the worktree
 #   scripts/wt.sh list                  show every worktree with ports and DB state
@@ -89,8 +92,14 @@ db_has_schema() {
 }
 
 cmd_setup() {
-  local seed=1
-  [ "${1:-}" = "--no-seed" ] && seed=0
+  local seed=1 container=1 a
+  for a in "$@"; do
+    case "$a" in
+      --no-seed) seed=0 ;;
+      --host) container=0 ;;
+      *) die "unknown option: $a" ;;
+    esac
+  done
   is_linked || die "this is the main worktree; it keeps the default env (ports 8443/55432)"
   command -v docker >/dev/null || die "docker not found"
 
@@ -120,12 +129,27 @@ cmd_setup() {
     pnpm db:seed
   fi
 
-  log "ready -> cd $root && pnpm dev   (http://localhost:$((APP_BASE + idx)))"
+  local url="http://localhost:$((APP_BASE + idx))"
+  if [ "$container" = 1 ]; then
+    log "building and starting app container (production build, can take a few minutes)"
+    if docker compose up -d --build app; then
+      log "ready -> $url   (logs: docker compose logs -f app | rebuild: make rebuild-app)"
+      return
+    fi
+    log "app container failed; falling back to host dev server"
+  fi
+  log "ready -> cd $root && pnpm dev   ($url)"
 }
 
 cmd_new() {
-  local branch="${1:-}" base="${2:-main}" main dir
-  [ -n "$branch" ] || die "usage: wt.sh new <branch> [base]"
+  local branch="" base="main" main dir a flags=()
+  for a in "$@"; do
+    case "$a" in
+      --*) flags+=("$a") ;;
+      *) if [ -z "$branch" ]; then branch="$a"; else base="$a"; fi ;;
+    esac
+  done
+  [ -n "$branch" ] || die "usage: wt.sh new <branch> [base] [--host] [--no-seed]"
   main="$(main_root)"
   dir="$main.worktrees/$(slugify "$branch")"
   mkdir -p "$main.worktrees"
@@ -134,7 +158,7 @@ cmd_new() {
   else
     WT_NO_HOOK=1 git worktree add -b "$branch" "$dir" "$base"
   fi
-  (cd "$dir" && "$main/scripts/wt.sh" setup)
+  (cd "$dir" && "$main/scripts/wt.sh" setup ${flags[@]+"${flags[@]}"})
 }
 
 cmd_down() {
