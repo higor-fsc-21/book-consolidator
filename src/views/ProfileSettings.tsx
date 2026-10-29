@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 // State for Profile Tab
 
@@ -7,24 +7,24 @@
 // Derived statistics
 /* Page Header */ /* Tabs navigation */ /* Tab 1: Perfil */ /* Tab 2: Metas */ /* Meta anual de livros */ /* Quick select presets */ /* Live progress preview */ /* Meta semanal de revisões */ /* Quick select presets */ /* Live progress preview */ /* Tab 3: Estatísticas */ /* Overview Grid */ /* Performance por modalidade */ /* Tab 4: Lembretes */
 
-import { useState } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import type { Book, UserProfile, SessionMode } from "@/domain/types"
-import { modeLabels } from "@/domain/constants"
-import { userJourneyStats } from "@/domain/derived"
+import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import type { Book, UserProfile, SessionMode } from "@/domain/types";
+import { modeLabels } from "@/domain/constants";
+import { userJourneyStats } from "@/domain/derived";
 import {
   updateUserGoalsAction,
   updateUserProfileAction,
-} from "@/app/actions/profile"
-import { NotificationSettings } from "@/components/NotificationSettings"
-import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition"
+} from "@/app/actions/profile";
+import { NotificationSettings } from "@/components/NotificationSettings";
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
 
-type TabId = "perfil" | "metas" | "estatisticas" | "lembretes"
+type TabId = "perfil" | "metas" | "estatisticas" | "lembretes";
 
 interface TabItem {
-  id: TabId
-  label: string
-  icon: React.ReactNode
+  id: TabId;
+  label: string;
+  icon: React.ReactNode;
 }
 
 const TABS: TabItem[] = [
@@ -106,132 +106,125 @@ const TABS: TabItem[] = [
       </svg>
     ),
   },
-]
+];
 
 interface ProfileSettingsViewProps {
-  profile: UserProfile
-  books: Book[]
+  profile: UserProfile;
+  books: Book[];
 }
 
 export function ProfileSettingsView({
   profile,
   books,
 }: ProfileSettingsViewProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const tabParam = searchParams.get("tab") as TabId | null
+  const tabParam = searchParams.get("tab") as TabId | null;
   const activeTab: TabId =
-    tabParam &&
-    TABS.some(
-      (t) =>
-        t.id ===
-        tabParam,
-    )
-      ? tabParam
-      : "perfil"
+    tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : "perfil";
 
   const handleTabChange = (nextTab: TabId) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("tab", nextTab)
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }
-  const [name, setName] = useState(profile.name)
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", nextTab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+  const [name, setName] = useState(profile.name);
   const [profileMessage, setProfileMessage] = useState<{
-    type: "success" | "error"
-    text: string
-  } | null>(null)
-  const [isSavingProfile, startProfileTransition] = useSingleFlightTransition()
-  const [annualGoal, setAnnualGoal] = useState<number>(profile.annualBooksGoal)
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [isSavingProfile, startProfileTransition] = useSingleFlightTransition();
+  const [annualGoal, setAnnualGoal] = useState<number>(profile.annualBooksGoal);
   const [weeklyGoal, setWeeklyGoal] = useState<number>(
     profile.weeklyRevisionsGoal,
-  )
+  );
   const [goalsMessage, setGoalsMessage] = useState<{
-    type: "success" | "error"
-    text: string
-  } | null>(null)
-  const [isSavingGoals, startGoalsTransition] = useSingleFlightTransition()
-  const stats = userJourneyStats(books)
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [isSavingGoals, startGoalsTransition] = useSingleFlightTransition();
+  const stats = userJourneyStats(books);
 
   const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault()
-    setProfileMessage(null)
-    const trimmed = name.trim()
+    e.preventDefault();
+    setProfileMessage(null);
+    const trimmed = name.trim();
     if (!trimmed) {
-      setProfileMessage({ type: "error", text: "Nome não pode ficar vazio" })
-      return
+      setProfileMessage({ type: "error", text: "Nome não pode ficar vazio" });
+      return;
     }
 
     startProfileTransition(async () => {
-      const result = await updateUserProfileAction({ name: trimmed })
+      const result = await updateUserProfileAction({ name: trimmed });
       if (result.success) {
         setProfileMessage({
           type: "success",
           text: "Nome de exibição atualizado com sucesso!",
-        })
+        });
       } else {
         setProfileMessage({
           type: "error",
           text: result.error || "Erro ao salvar perfil",
-        })
+        });
       }
-    })
-  }
+    });
+  };
 
   const handleSaveGoals = (e: React.FormEvent) => {
-    e.preventDefault()
-    setGoalsMessage(null)
+    e.preventDefault();
+    setGoalsMessage(null);
 
     if (annualGoal < 1 || annualGoal > 200) {
       setGoalsMessage({
         type: "error",
         text: "A meta anual de livros deve estar entre 1 e 200.",
-      })
-      return
+      });
+      return;
     }
     if (weeklyGoal < 1 || weeklyGoal > 50) {
       setGoalsMessage({
         type: "error",
         text: "A meta semanal de revisões deve estar entre 1 e 50.",
-      })
-      return
+      });
+      return;
     }
 
     startGoalsTransition(async () => {
       const result = await updateUserGoalsAction({
         annualBooksGoal: annualGoal,
         weeklyRevisionsGoal: weeklyGoal,
-      })
+      });
       if (result.success) {
         setGoalsMessage({
           type: "success",
           text: "Metas de leitura e revisão salvas com sucesso!",
-        })
+        });
       } else {
         setGoalsMessage({
           type: "error",
           text: result.error || "Erro ao salvar metas",
-        })
+        });
       }
-    })
-  }
+    });
+  };
 
   const memberSince = new Date(profile.createdAt).toLocaleDateString("pt-BR", {
     day: "numeric",
     month: "long",
     year: "numeric",
-  })
+  });
 
   const annualGoalProgressPercent = Math.min(
     100,
     Math.round((stats.completedBooksCount / Math.max(1, annualGoal)) * 100),
-  )
+  );
 
   const weeklyGoalProgressPercent = Math.min(
     100,
     Math.round((stats.sessionsThisWeek / Math.max(1, weeklyGoal)) * 100),
-  )
+  );
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 p-4 sm:p-6 lg:p-8">
@@ -253,9 +246,9 @@ export function ProfileSettingsView({
       </div>
 
       {}
-      <div className="-mb-px flex flex-wrap gap-2 border-b border-[#e4e2e2]">
+      <div className="-mb-px mb-6 flex flex-wrap gap-2 border-b border-[#e4e2e2]">
         {TABS.map((tab) => {
-          const isActive = activeTab === tab.id
+          const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
@@ -270,7 +263,7 @@ export function ProfileSettingsView({
               {tab.icon}
               {tab.label}
             </button>
-          )
+          );
         })}
       </div>
 
@@ -709,11 +702,14 @@ export function ProfileSettingsView({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {(["direct", "guided", "recognition"] as SessionMode[]).map(
                 (mode) => {
-                  const item = stats.modeStats[mode]
-                  const details: Record<SessionMode, {
-                    icon: string
-                    subtitle: string
-                  }> = {
+                  const item = stats.modeStats[mode];
+                  const details: Record<
+                    SessionMode,
+                    {
+                      icon: string;
+                      subtitle: string;
+                    }
+                  > = {
                     direct: {
                       icon: "🃏",
                       subtitle: "Recuperação ativa sem pistas",
@@ -726,7 +722,7 @@ export function ProfileSettingsView({
                       icon: "🔍",
                       subtitle: "Aplicação em cenários do mundo real",
                     },
-                  }
+                  };
 
                   return (
                     <div
@@ -769,7 +765,7 @@ export function ProfileSettingsView({
                         </span>
                       </div>
                     </div>
-                  )
+                  );
                 },
               )}
             </div>
@@ -793,5 +789,5 @@ export function ProfileSettingsView({
         </div>
       )}
     </div>
-  )
+  );
 }

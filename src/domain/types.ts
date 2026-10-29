@@ -5,6 +5,20 @@ export type Importance = 1 | 2 | 3
 export type SessionMode = "direct" | "guided" | "recognition"
 export type Performance = "correct" | "partial" | "wrong"
 export type Difficulty = "easy" | "medium" | "hard"
+export type FeedbackCategory = "question" | "suggestion" | "bug"
+export type FeedbackEmailStatus = "pending" | "sent" | "failed"
+
+export interface FeedbackMessage {
+  id: string
+  userId: string
+  category: FeedbackCategory
+  subject: string
+  message: string
+  emailStatus: FeedbackEmailStatus
+  emailError: string | null
+  sentAt: Date | null
+  createdAt: Date
+}
 
 export interface Question {
   id: string

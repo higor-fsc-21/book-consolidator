@@ -51,6 +51,18 @@ enum NotificationDeliveryStatus {
   failed
 }
 
+enum FeedbackCategory {
+  question
+  suggestion
+  bug
+}
+
+enum FeedbackEmailStatus {
+  pending
+  sent
+  failed
+}
+
 model User {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   authUserId String?   @unique
@@ -70,6 +82,7 @@ model User {
   sessions              RevisionSession[]
   pushSubscriptions     PushSubscription[]
   notificationDeliveries NotificationDelivery[]
+  feedbackMessages      FeedbackMessage[]
 }
 
 model Book {
@@ -204,4 +217,20 @@ model SessionAttempt {
 
   @@index([sessionId])
   @@index([questionId])
+}
+
+model FeedbackMessage {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String              @db.Uuid
+  category    FeedbackCategory
+  subject     String
+  message     String
+  emailStatus FeedbackEmailStatus @default(pending)
+  emailError  String?
+  sentAt      DateTime?           @db.Timestamptz(3)
+  createdAt   DateTime            @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

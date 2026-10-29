@@ -142,6 +142,22 @@ export const UpdateUserProfileSchema = z.object({
     .max(120, "Nome deve ter no máximo 120 caracteres"),
 })
 
+export const FeedbackCategorySchema = z.enum(["question", "suggestion", "bug"])
+
+export const CreateFeedbackInputSchema = z.object({
+  category: FeedbackCategorySchema,
+  subject: z
+    .string()
+    .trim()
+    .min(3, "Assunto muito curto")
+    .max(150, "Assunto muito longo"),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Escreva uma mensagem um pouco mais detalhada")
+    .max(3000, "Mensagem excede o limite de 3000 caracteres"),
+})
+
 export const UpdateUserGoalsSchema = z.object({
   annualBooksGoal: z.coerce
     .number()
@@ -170,6 +186,7 @@ export type AiEvaluationResult = z.infer<typeof AiEvaluationResultSchema>
 export type GoogleBooksSearchQuery = z.infer<typeof GoogleBooksSearchQuerySchema>
 export type NotificationPreferencesInput = z.infer<typeof NotificationPreferencesSchema>
 export type PushSubscriptionInput = z.infer<typeof PushSubscriptionSchema>
+export type CreateFeedbackInput = z.infer<typeof CreateFeedbackInputSchema>
 export type UpdateUserProfileInput = z.infer<typeof UpdateUserProfileSchema>
 export type UpdateUserGoalsInput = z.infer<typeof UpdateUserGoalsSchema>
 

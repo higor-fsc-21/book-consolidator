@@ -4,7 +4,9 @@ import {
   CompleteSessionInputSchema,
   CreateBookInputSchema,
   CreateChapterInputSchema,
+  CreateFeedbackInputSchema,
   CreateQuestionInputSchema,
+  FeedbackCategorySchema,
   GoogleBooksSearchQuerySchema,
   StartSessionInputSchema,
   UpdateBookInputSchema,
@@ -247,6 +249,52 @@ describe("validation schemas (D20)", () => {
           weeklyRevisionsGoal: 51,
         }).success,
       ).toBe(false)
+    })
+  })
+
+  describe("Feedback schemas", () => {
+    it("validates valid categories", () => {
+      expect(FeedbackCategorySchema.safeParse("question").success).toBe(true)
+      expect(FeedbackCategorySchema.safeParse("suggestion").success).toBe(true)
+      expect(FeedbackCategorySchema.safeParse("bug").success).toBe(true)
+      expect(FeedbackCategorySchema.safeParse("other").success).toBe(false)
+    })
+
+    it("validates valid feedback input", () => {
+      const result = CreateFeedbackInputSchema.safeParse({
+        category: "suggestion",
+        subject: "Melhoria na página inicial",
+        message:
+          "Seria excelente adicionar um gráfico de revisão no painel principal.",
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it("rejects subject shorter than 3 characters", () => {
+      const result = CreateFeedbackInputSchema.safeParse({
+        category: "question",
+        subject: "Oi",
+        message: "Tenho uma dúvida sobre a repetição espaçada.",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("rejects message shorter than 10 characters", () => {
+      const result = CreateFeedbackInputSchema.safeParse({
+        category: "bug",
+        subject: "Erro no salvamento",
+        message: "Quebrou",
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it("rejects message longer than 3000 characters", () => {
+      const result = CreateFeedbackInputSchema.safeParse({
+        category: "question",
+        subject: "Dúvida extensa",
+        message: "a".repeat(3001),
+      })
+      expect(result.success).toBe(false)
     })
   })
 })
