@@ -1,12 +1,12 @@
-import { z } from "zod";
+import { z } from "zod"
 
-export const UuidSchema = z.string().uuid();
+export const UuidSchema = z.string().uuid()
 
 export const ImportanceSchema = z.union([
   z.literal(1),
   z.literal(2),
   z.literal(3),
-]);
+])
 
 export const ReadingStatusSchema = z.enum([
   "want",
@@ -14,19 +14,19 @@ export const ReadingStatusSchema = z.enum([
   "completed",
   "paused",
   "archived",
-]);
+])
 
 export const ConsolidationStateSchema = z.enum([
   "consolidating",
   "consolidated",
   "archived",
-]);
+])
 
-export const DifficultySchema = z.enum(["easy", "medium", "hard"]);
+export const DifficultySchema = z.enum(["easy", "medium", "hard"])
 
-export const PerformanceSchema = z.enum(["correct", "partial", "wrong"]);
+export const PerformanceSchema = z.enum(["correct", "partial", "wrong"])
 
-export const SessionModeSchema = z.enum(["direct", "guided", "recognition"]);
+export const SessionModeSchema = z.enum(["direct", "guided", "recognition"])
 
 // Inputs never accept id, userId, score from the client.
 // consolidationState is omitted in CreateBookInput, but allowed in UpdateBookInput (BookModal edit mode).
@@ -49,16 +49,16 @@ export const CreateBookInputSchema = z.object({
   year: z.coerce.number().int().min(0).max(2100).nullable().optional(),
   coverUrl: z.string().url().nullable().optional().or(z.literal("")),
   googleBooksId: z.string().nullable().optional(),
-});
+})
 
 export const UpdateBookInputSchema = CreateBookInputSchema.partial().extend({
   consolidationState: ConsolidationStateSchema.optional(),
-});
+})
 
 export const CreateChapterInputSchema = z.object({
   title: z.string().trim().min(1, "Título do capítulo é obrigatório").max(300),
   description: z.string().trim().max(1000).nullable().optional(),
-});
+})
 
 export const UpdateChapterInputSchema = z.object({
   title: z
@@ -70,57 +70,57 @@ export const UpdateChapterInputSchema = z.object({
   description: z.string().trim().max(1000).nullable().optional(),
   summary: z.string().trim().nullable().optional(),
   isRead: z.boolean().optional(),
-});
+})
 
 export const CreateQuestionInputSchema = z.object({
   text: z.string().trim().min(1, "Texto da pergunta é obrigatório"),
   answer: z.string().trim().min(1, "Resposta é obrigatória"),
   difficulty: DifficultySchema.default("medium"),
-});
+})
 
-export const UpdateQuestionInputSchema = CreateQuestionInputSchema.partial();
+export const UpdateQuestionInputSchema = CreateQuestionInputSchema.partial()
 
 export const StartSessionInputSchema = z.object({
   bookId: UuidSchema,
   chapterId: UuidSchema.optional(),
   mode: SessionModeSchema.optional(),
-});
+})
 
 export const SessionPerformanceEntrySchema = z.object({
   questionId: UuidSchema,
   performance: PerformanceSchema,
   userAnswer: z.string().trim().max(4000).nullable().optional(),
-});
+})
 
 export const CompleteSessionInputSchema = z.object({
   mode: SessionModeSchema,
   entries: z.array(SessionPerformanceEntrySchema).min(1),
-});
+})
 
 export const AiEvaluationQuestionResultSchema = z.object({
   index: z.coerce.number().int().min(1),
   performance: PerformanceSchema,
-});
+})
 
 export const AiEvaluationResultSchema = z.object({
   questions: z.array(AiEvaluationQuestionResultSchema).min(1),
-});
+})
 
 export const CancelSessionInputSchema = z.object({
   sessionId: UuidSchema,
-});
+})
 
 export const GoogleBooksSearchQuerySchema = z.object({
   q: z.string().trim().min(1, "Termo de busca é obrigatório"),
   startIndex: z.coerce.number().int().min(0).default(0),
   maxResults: z.coerce.number().int().min(1).max(40).default(10),
-});
+})
 
 export const NotificationPreferencesSchema = z.object({
   enabled: z.boolean(),
   reminderTimeMinutes: z.number().int().min(0).max(1439),
   timezone: z.string().trim().min(1).max(100),
-});
+})
 
 export const PushSubscriptionSchema = z.object({
   endpoint: z.string().url(),
@@ -128,13 +128,21 @@ export const PushSubscriptionSchema = z.object({
     p256dh: z.string().min(1),
     auth: z.string().min(1),
   }),
-});
+})
 
 export const PushSubscriptionEndpointSchema = z.object({
   endpoint: z.string().url(),
-});
+})
 
-export const FeedbackCategorySchema = z.enum(["question", "suggestion", "bug"]);
+export const UpdateUserProfileSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Nome é obrigatório")
+    .max(120, "Nome deve ter no máximo 120 caracteres"),
+})
+
+export const FeedbackCategorySchema = z.enum(["question", "suggestion", "bug"])
 
 export const CreateFeedbackInputSchema = z.object({
   category: FeedbackCategorySchema,
@@ -148,40 +156,45 @@ export const CreateFeedbackInputSchema = z.object({
     .trim()
     .min(10, "Escreva uma mensagem um pouco mais detalhada")
     .max(3000, "Mensagem excede o limite de 3000 caracteres"),
-});
+})
 
-export type CreateBookInput = z.infer<typeof CreateBookInputSchema>;
-export type UpdateBookInput = z.infer<typeof UpdateBookInputSchema>;
-export type CreateChapterInput = z.infer<typeof CreateChapterInputSchema>;
-export type UpdateChapterInput = z.infer<typeof UpdateChapterInputSchema>;
-export type CreateQuestionInput = z.infer<typeof CreateQuestionInputSchema>;
-export type UpdateQuestionInput = z.infer<typeof UpdateQuestionInputSchema>;
-export type StartSessionInput = z.infer<typeof StartSessionInputSchema>;
-export type CompleteSessionInput = z.infer<typeof CompleteSessionInputSchema>;
-export type CancelSessionInput = z.infer<typeof CancelSessionInputSchema>;
-export type SessionPerformanceEntry = z.infer<
-  typeof SessionPerformanceEntrySchema
->;
-export type AiEvaluationQuestionResult = z.infer<
-  typeof AiEvaluationQuestionResultSchema
->;
-export type AiEvaluationResult = z.infer<typeof AiEvaluationResultSchema>;
-export type GoogleBooksSearchQuery = z.infer<
-  typeof GoogleBooksSearchQuerySchema
->;
-export type NotificationPreferencesInput = z.infer<
-  typeof NotificationPreferencesSchema
->;
-export type PushSubscriptionInput = z.infer<typeof PushSubscriptionSchema>;
-export type CreateFeedbackInput = z.infer<typeof CreateFeedbackInputSchema>;
+export const UpdateUserGoalsSchema = z.object({
+  annualBooksGoal: z.coerce
+    .number()
+    .int("A meta deve ser um número inteiro")
+    .min(1, "A meta mínima é de 1 livro por ano")
+    .max(200, "A meta máxima é de 200 livros por ano"),
+  weeklyRevisionsGoal: z.coerce
+    .number()
+    .int("A meta deve ser um número inteiro")
+    .min(1, "A meta mínima é de 1 revisão por semana")
+    .max(50, "A meta máxima é de 50 revisões por semana"),
+})
 
-export type ActionResult<T = void> =
-  | {
-      success: true;
-      data?: T;
-    }
-  | {
-      success: false;
-      error: string;
-      fieldErrors?: Record<string, string[]>;
-    };
+export type CreateBookInput = z.infer<typeof CreateBookInputSchema>
+export type UpdateBookInput = z.infer<typeof UpdateBookInputSchema>
+export type CreateChapterInput = z.infer<typeof CreateChapterInputSchema>
+export type UpdateChapterInput = z.infer<typeof UpdateChapterInputSchema>
+export type CreateQuestionInput = z.infer<typeof CreateQuestionInputSchema>
+export type UpdateQuestionInput = z.infer<typeof UpdateQuestionInputSchema>
+export type StartSessionInput = z.infer<typeof StartSessionInputSchema>
+export type CompleteSessionInput = z.infer<typeof CompleteSessionInputSchema>
+export type CancelSessionInput = z.infer<typeof CancelSessionInputSchema>
+export type SessionPerformanceEntry = z.infer<typeof SessionPerformanceEntrySchema>
+export type AiEvaluationQuestionResult = z.infer<typeof AiEvaluationQuestionResultSchema>
+export type AiEvaluationResult = z.infer<typeof AiEvaluationResultSchema>
+export type GoogleBooksSearchQuery = z.infer<typeof GoogleBooksSearchQuerySchema>
+export type NotificationPreferencesInput = z.infer<typeof NotificationPreferencesSchema>
+export type PushSubscriptionInput = z.infer<typeof PushSubscriptionSchema>
+export type CreateFeedbackInput = z.infer<typeof CreateFeedbackInputSchema>
+export type UpdateUserProfileInput = z.infer<typeof UpdateUserProfileSchema>
+export type UpdateUserGoalsInput = z.infer<typeof UpdateUserGoalsSchema>
+
+export type ActionResult<T = void,> = {
+  success: true
+  data?: T
+} | {
+  success: false
+  error: string
+  fieldErrors?: Record<string, string[]>
+}

@@ -1,14 +1,14 @@
-"use client"; /* Hero header */ /* Back */ /* Meta */ /* Progress */ /* Stats */ /* Actions */ /* Tabs */ /* Tab content */ /* Chapters */ /* Summary */ /* Revisions */ /* Bar chart */ /* Revision list */ /* Delete Confirmation Modal */
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { Book } from "@/domain/types";
+"use client" /* Hero header */ /* Back */ /* Meta */ /* Progress */ /* Stats */ /* Actions */ /* Tabs */ /* Tab content */ /* Chapters */ /* Summary */ /* Revisions */ /* Bar chart */ /* Revision list */ /* Delete Confirmation Modal */
+import { useState } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import type { Book } from "@/domain/types"
 import {
   statusLabels,
   consolidationLabels,
   modeLabels,
-} from "@/domain/constants";
+} from "@/domain/constants"
 import {
   avgScore,
   coverGradient,
@@ -17,28 +17,25 @@ import {
   pendingSessions,
   sessionHistory,
   type SessionHistoryEntry,
-} from "@/domain/derived";
-import { updateBook, startReading, deleteBook } from "@/app/actions/books";
+} from "@/domain/derived"
+import { updateBook, startReading, deleteBook } from "@/app/actions/books"
 import {
   createChapter,
   toggleChapterRead,
   deleteChapter,
-} from "@/app/actions/chapters";
-import {
-  cancelSessionAction,
-  startSessionAction,
-} from "@/app/actions/sessions";
-import { BookModal } from "@/components/BookModal";
-import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
+} from "@/app/actions/chapters"
+import { cancelSessionAction, startSessionAction } from "@/app/actions/sessions"
+import { BookModal } from "@/components/BookModal"
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition"
 
 function BookCover({
   coverUrl,
   title,
   gradient,
 }: {
-  coverUrl?: string | null;
-  title: string;
-  gradient: [string, string];
+  coverUrl?: string | null
+  title: string
+  gradient: [string, string]
 }) {
   if (coverUrl) {
     return (
@@ -51,7 +48,7 @@ function BookCover({
           sizes="80px"
         />
       </div>
-    );
+    )
   }
 
   return (
@@ -62,7 +59,7 @@ function BookCover({
         boxShadow: "4px 6px 20px rgba(0,0,0,0.25)",
       }}
     />
-  );
+  )
 }
 
 function SessionHistoryRow({
@@ -70,29 +67,29 @@ function SessionHistoryRow({
   onCancel,
   cancelling,
 }: {
-  entry: SessionHistoryEntry;
-  onCancel: (sessionId: string) => void;
-  cancelling: boolean;
+  entry: SessionHistoryEntry
+  onCancel: (sessionId: string) => void
+  cancelling: boolean
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false)
   const date = (entry.completedAt ?? entry.startedAt).toLocaleDateString(
     "pt-BR",
     { day: "2-digit", month: "short", year: "2-digit" },
-  );
-  const score = entry.score ?? 0;
+  )
+  const score = entry.score ?? 0
   const scoreColor = entry.pending
     ? "text-[#74777d]"
     : score >= 80
       ? "text-[#2a5628]"
       : score >= 60
         ? "text-[#7a5a00]"
-        : "text-[#ba1a1a]";
+        : "text-[#ba1a1a]"
   const barColor =
     score >= 80
       ? "bg-[#8ba889]"
       : score >= 60
         ? "bg-[#f2d492]"
-        : "bg-[#ba1a1a]/60";
+        : "bg-[#ba1a1a]/60"
 
   return (
     <div className="border-b border-[#f0eeee] last:border-0">
@@ -193,23 +190,23 @@ function SessionHistoryRow({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 interface NewChapterForm {
-  title: string;
-  description: string;
+  title: string
+  description: string
 }
 
 interface ChapterSaveData {
-  title: string;
-  description?: string;
+  title: string
+  description?: string
 }
 
 interface AddChapterFormProps {
-  onSave: (data: ChapterSaveData) => void;
-  onCancel: () => void;
-  isPending?: boolean;
+  onSave: (data: ChapterSaveData) => void
+  onCancel: () => void
+  isPending?: boolean
 }
 
 function AddChapterForm({
@@ -220,8 +217,8 @@ function AddChapterForm({
   const [form, setForm] = useState<NewChapterForm>({
     title: "",
     description: "",
-  });
-  const canSave = form.title.trim().length > 0;
+  })
+  const canSave = form.title.trim().length > 0
 
   return (
     <div className="bg-white rounded-xl border-2 border-[#1a2e44]/30 shadow-paper p-5 space-y-4">
@@ -282,64 +279,64 @@ function AddChapterForm({
         </button>
       </div>
     </div>
-  );
+  )
 }
 
 export function BookDetail({ book }: { book: Book }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab");
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab")
   const activeTab: "chapters" | "summary" | "revisions" =
-    tabParam === "summary" || tabParam === "revisions" ? tabParam : "chapters";
+    tabParam === "summary" || tabParam === "revisions" ? tabParam : "chapters"
   const setActiveTab = (tab: "chapters" | "summary" | "revisions") => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (tab === "chapters") params.delete("tab");
-    else params.set("tab", tab);
-    const query = params.toString();
+    const params = new URLSearchParams(searchParams.toString())
+    if (tab === "chapters") params.delete("tab")
+    else params.set("tab", tab)
+    const query = params.toString()
     router.replace(query ? `${pathname}?${query}` : pathname, {
       scroll: false,
-    });
-  };
-  const [sessionOpen, setSessionOpen] = useState(false);
-  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
-  const [editingSummary, setEditingSummary] = useState(false);
-  const [summaryDraft, setSummaryDraft] = useState(book.summary ?? "");
-  const [addingChapter, setAddingChapter] = useState(false);
-  const [editBookOpen, setEditBookOpen] = useState(false);
-  const [isPending, startTransition] = useSingleFlightTransition();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+    })
+  }
+  const [sessionOpen, setSessionOpen] = useState(false)
+  const [expandedChapter, setExpandedChapter] = useState<string | null>(null)
+  const [editingSummary, setEditingSummary] = useState(false)
+  const [summaryDraft, setSummaryDraft] = useState(book.summary ?? "")
+  const [addingChapter, setAddingChapter] = useState(false)
+  const [editBookOpen, setEditBookOpen] = useState(false)
+  const [isPending, startTransition] = useSingleFlightTransition()
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const readChapters = book.chapters.filter((c) => c.isRead).length;
+  const readChapters = book.chapters.filter((c) => c.isRead).length
   const chaptersWithQuestions = book.chapters.filter(
     (c) => c.questions.length > 0,
-  );
+  )
   const totalQuestions = book.chapters.reduce(
     (a, c) => a + c.questions.length,
     0,
-  );
-  const avg = avgScore(book);
-  const history = sessionHistory(book);
-  const completedHistory = history.filter((s) => !s.pending);
-  const pending = pendingSessions(book);
-  const consolidation = effectiveConsolidationState(book);
+  )
+  const avg = avgScore(book)
+  const history = sessionHistory(book)
+  const completedHistory = history.filter((s) => !s.pending)
+  const pending = pendingSessions(book)
+  const consolidation = effectiveConsolidationState(book)
 
   const progress =
     book.totalChapters > 0 && readChapters > 0
       ? Math.round((readChapters / book.totalChapters) * 100)
-      : 0;
+      : 0
 
   const saveSummary = () => {
     startTransition(async () => {
-      const res = await updateBook(book.id, { summary: summaryDraft });
+      const res = await updateBook(book.id, { summary: summaryDraft })
       if (res.success) {
-        setEditingSummary(false);
+        setEditingSummary(false)
       } else {
-        alert(res.error || "Erro ao salvar resumo");
+        alert(res.error || "Erro ao salvar resumo")
       }
-    });
-  };
+    })
+  }
 
   return (
     <div className="min-h-full bg-[#fbf9f8]">
@@ -491,8 +488,8 @@ export function BookDetail({ book }: { book: Book }) {
                 <button
                   onClick={() => {
                     startTransition(async () => {
-                      await startReading(book.id);
-                    });
+                      await startReading(book.id)
+                    })
                   }}
                   disabled={isPending}
                   className="flex w-full items-center gap-2 rounded-lg bg-[#1a2e44] px-4 py-2.5 text-sm font-[600] text-white transition-colors hover:bg-[#2d4460] disabled:opacity-50 md:w-auto"
@@ -584,21 +581,21 @@ export function BookDetail({ book }: { book: Book }) {
                             direct: "🃏",
                             guided: "💬",
                             recognition: "🔍",
-                          };
+                          }
                           const descs = {
                             direct: "Lembro?",
                             guided: "Explico com minhas palavras?",
                             recognition: "Reconheço em situações reais?",
-                          };
+                          }
                           return (
                             <button
                               key={mode}
                               disabled={isPending}
                               onClick={() => {
-                                setSessionOpen(false);
+                                setSessionOpen(false)
                                 startTransition(async () => {
-                                  await startSessionAction(book.id, { mode });
-                                });
+                                  await startSessionAction(book.id, { mode })
+                                })
                               }}
                               className="w-full px-4 py-3.5 text-left hover:bg-[#f5f3f3] transition-colors border-b border-[#f0eeee] last:border-0"
                             >
@@ -614,7 +611,7 @@ export function BookDetail({ book }: { book: Book }) {
                                 </div>
                               </div>
                             </button>
-                          );
+                          )
                         },
                       )}
                     </div>
@@ -628,18 +625,16 @@ export function BookDetail({ book }: { book: Book }) {
         {}
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <div className="-mb-px flex flex-wrap gap-1 border-b border-[#e4e2e2]">
-            {(
-              [
-                { id: "chapters", label: "Capítulos" },
-                { id: "summary", label: "Resumo pessoal" },
-                {
-                  id: "revisions",
-                  label: `Revisões${
-                    history.length > 0 ? ` (${history.length})` : ""
-                  }`,
-                },
-              ] as const
-            ).map((tab) => (
+            {([
+              { id: "chapters", label: "Capítulos" },
+              { id: "summary", label: "Resumo pessoal" },
+              {
+                id: "revisions",
+                label: `Revisões${
+                  history.length > 0 ? ` (${history.length})` : ""
+                }`,
+              },
+            ] as const).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
@@ -662,8 +657,8 @@ export function BookDetail({ book }: { book: Book }) {
         {activeTab === "chapters" && (
           <div className="space-y-2">
             {book.chapters.map((chapter) => {
-              const isExpanded = expandedChapter === chapter.id;
-              const hasQ = chapter.questions.length > 0;
+              const isExpanded = expandedChapter === chapter.id
+              const hasQ = chapter.questions.length > 0
 
               return (
                 <div
@@ -674,8 +669,8 @@ export function BookDetail({ book }: { book: Book }) {
                     <button
                       onClick={() => {
                         startTransition(async () => {
-                          await toggleChapterRead(book.id, chapter.id);
-                        });
+                          await toggleChapterRead(book.id, chapter.id)
+                        })
                       }}
                       disabled={isPending}
                       title={
@@ -799,7 +794,7 @@ export function BookDetail({ book }: { book: Book }) {
                                     {q.answer}
                                   </div>
                                   {(() => {
-                                    const perf = lastPerformance(q, book);
+                                    const perf = lastPerformance(q, book)
                                     return (
                                       perf && (
                                         <span
@@ -818,7 +813,7 @@ export function BookDetail({ book }: { book: Book }) {
                                               : "✗ Errei"}
                                         </span>
                                       )
-                                    );
+                                    )
                                   })()}
                                 </div>
                               </div>
@@ -842,7 +837,7 @@ export function BookDetail({ book }: { book: Book }) {
                                 await startSessionAction(book.id, {
                                   mode: "direct",
                                   chapterId: chapter.id,
-                                });
+                                })
                               })
                             }
                             className="text-xs px-3 py-1.5 rounded-lg bg-[#1a2e44]/8 text-[#1a2e44] hover:bg-[#1a2e44]/15 transition-colors font-[500]"
@@ -854,8 +849,8 @@ export function BookDetail({ book }: { book: Book }) {
                           disabled={isPending}
                           onClick={() => {
                             startTransition(async () => {
-                              await toggleChapterRead(book.id, chapter.id);
-                            });
+                              await toggleChapterRead(book.id, chapter.id)
+                            })
                           }}
                           className="text-xs px-3 py-1.5 rounded-lg border border-[#e4e2e2] text-[#43474d] hover:bg-[#f5f3f3] transition-colors disabled:opacity-50"
                         >
@@ -867,7 +862,7 @@ export function BookDetail({ book }: { book: Book }) {
                     </div>
                   )}
                 </div>
-              );
+              )
             })}
 
             {book.chapters.length === 0 && !addingChapter && (
@@ -895,13 +890,13 @@ export function BookDetail({ book }: { book: Book }) {
                 isPending={isPending}
                 onSave={(data) => {
                   startTransition(async () => {
-                    const res = await createChapter(book.id, data);
+                    const res = await createChapter(book.id, data)
                     if (res.success) {
-                      setAddingChapter(false);
+                      setAddingChapter(false)
                     } else {
-                      alert(res.error || "Erro ao adicionar capítulo");
+                      alert(res.error || "Erro ao adicionar capítulo")
                     }
-                  });
+                  })
                 }}
                 onCancel={() => setAddingChapter(false)}
               />
@@ -950,8 +945,8 @@ export function BookDetail({ book }: { book: Book }) {
                   <button
                     disabled={isPending}
                     onClick={() => {
-                      setSummaryDraft(book.summary ?? "");
-                      setEditingSummary(false);
+                      setSummaryDraft(book.summary ?? "")
+                      setEditingSummary(false)
                     }}
                     className="px-4 py-2.5 rounded-lg border border-[#e4e2e2] text-sm font-[500] text-[#43474d] hover:bg-[#f5f3f3] transition-colors disabled:opacity-40"
                   >
@@ -977,8 +972,8 @@ export function BookDetail({ book }: { book: Book }) {
                   </div>
                   <button
                     onClick={() => {
-                      setSummaryDraft(book.summary ?? "");
-                      setEditingSummary(true);
+                      setSummaryDraft(book.summary ?? "")
+                      setEditingSummary(true)
                     }}
                     className="text-xs px-3 py-1.5 rounded-lg border border-[#e4e2e2] text-[#43474d] hover:bg-[#f5f3f3] transition-colors flex items-center gap-1.5"
                   >
@@ -1033,8 +1028,8 @@ export function BookDetail({ book }: { book: Book }) {
                 </p>
                 <button
                   onClick={() => {
-                    setSummaryDraft("");
-                    setEditingSummary(true);
+                    setSummaryDraft("")
+                    setEditingSummary(true)
                   }}
                   className="px-5 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
                 >
@@ -1081,7 +1076,7 @@ export function BookDetail({ book }: { book: Book }) {
                           disabled={isPending}
                           onClick={() =>
                             startTransition(async () => {
-                              await cancelSessionAction(session.id);
+                              await cancelSessionAction(session.id)
                             })
                           }
                           className="text-xs px-3 py-1.5 rounded-lg border border-[#ba1a1a]/30 text-[#ba1a1a] disabled:opacity-40"
@@ -1103,13 +1098,13 @@ export function BookDetail({ book }: { book: Book }) {
                   </div>
                   <div className="flex items-end gap-4 h-20">
                     {[...completedHistory].reverse().map((r) => {
-                      const score = r.score ?? 0;
+                      const score = r.score ?? 0
                       const barColor =
                         score >= 80
                           ? "bg-[#8ba889]"
                           : score >= 60
                             ? "bg-[#f2d492]"
-                            : "bg-[#ba1a1a]/60";
+                            : "bg-[#ba1a1a]/60"
                       return (
                         <div
                           key={r.id}
@@ -1137,15 +1132,15 @@ export function BookDetail({ book }: { book: Book }) {
                             )}
                           </div>
                         </div>
-                      );
+                      )
                     })}
                   </div>
                   {completedHistory.length >= 2 &&
                     (() => {
-                      const chronological = [...completedHistory].reverse();
+                      const chronological = [...completedHistory].reverse()
                       const diff =
                         (chronological.at(-1)!.score ?? 0) -
-                        (chronological[0].score ?? 0);
+                        (chronological[0].score ?? 0)
                       return (
                         <div className="mt-4 pt-4 border-t border-[#f0eeee] text-sm text-[#74777d]">
                           Da primeira à última revisão:{" "}
@@ -1160,7 +1155,7 @@ export function BookDetail({ book }: { book: Book }) {
                             {diff} pontos
                           </span>
                         </div>
-                      );
+                      )
                     })()}
                 </div>
 
@@ -1172,7 +1167,7 @@ export function BookDetail({ book }: { book: Book }) {
                       cancelling={isPending}
                       onCancel={(sessionId) =>
                         startTransition(async () => {
-                          await cancelSessionAction(sessionId);
+                          await cancelSessionAction(sessionId)
                         })
                       }
                     />
@@ -1195,7 +1190,7 @@ export function BookDetail({ book }: { book: Book }) {
                     disabled={isPending}
                     onClick={() =>
                       startTransition(async () => {
-                        await startSessionAction(book.id);
+                        await startSessionAction(book.id)
                       })
                     }
                     className="px-5 py-2.5 bg-[#1a2e44] text-white text-sm font-[600] rounded-lg hover:bg-[#2d4460] transition-colors"
@@ -1215,19 +1210,19 @@ export function BookDetail({ book }: { book: Book }) {
           isPending={isPending}
           errorMessage={errorMessage}
           onClose={() => {
-            setEditBookOpen(false);
-            setErrorMessage(null);
+            setEditBookOpen(false)
+            setErrorMessage(null)
           }}
           onSave={async (data) => {
-            setErrorMessage(null);
+            setErrorMessage(null)
             startTransition(async () => {
-              const res = await updateBook(book.id, data);
+              const res = await updateBook(book.id, data)
               if (res.success) {
-                setEditBookOpen(false);
+                setEditBookOpen(false)
               } else {
-                setErrorMessage(res.error || "Erro ao salvar alterações");
+                setErrorMessage(res.error || "Erro ao salvar alterações")
               }
-            });
+            })
           }}
         />
       )}
@@ -1262,14 +1257,14 @@ export function BookDetail({ book }: { book: Book }) {
                 disabled={isPending}
                 onClick={() => {
                   startTransition(async () => {
-                    const res = await deleteBook(book.id);
+                    const res = await deleteBook(book.id)
                     if (res.success) {
-                      router.push("/biblioteca");
-                      router.refresh();
+                      router.push("/biblioteca")
+                      router.refresh()
                     } else {
-                      alert(res.error || "Erro ao excluir livro");
+                      alert(res.error || "Erro ao excluir livro")
                     }
-                  });
+                  })
                 }}
                 className="flex-1 py-2.5 rounded-lg bg-[#ba1a1a] text-white text-sm font-[600] hover:bg-[#ba1a1a]/90 transition-colors flex items-center justify-center gap-2"
               >
@@ -1283,5 +1278,5 @@ export function BookDetail({ book }: { book: Book }) {
         </div>
       )}
     </div>
-  );
+  )
 }

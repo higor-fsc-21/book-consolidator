@@ -13,5 +13,11 @@ export default async function DashboardPage() {
   })
   const capitalDate = dateStr.charAt(0).toUpperCase() + dateStr.slice(1)
 
-  return <Dashboard books={books} dateStr={capitalDate} />
+  return (
+    <Dashboard
+      books={books}
+      dateStr={capitalDate}
+      annualGoal={user.annualBooksGoal}
+    />
+  )
 }

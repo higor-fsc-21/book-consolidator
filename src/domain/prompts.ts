@@ -1,40 +1,40 @@
-import type { Book, Chapter, Question } from "./types";
+import type { Book, Chapter, Question } from "./types"
 
 const chaptersWithQuestions = (book: Book, chapterIds?: string[]) =>
   chapterIds
     ? book.chapters.filter(
         (c) => chapterIds.includes(c.id) && c.questions.length > 0,
       )
-    : book.chapters.filter((c) => c.questions.length > 0);
+    : book.chapters.filter((c) => c.questions.length > 0)
 
 /**
  * Global, 1-based ordering of the user's questions — the same order the session
  * view uses when mapping the AI's JSON block back onto each question.
  */
-const orderedQuestions = (
-  book: Book,
-  chapterIds?: string[],
-): Array<{ chapter: Chapter; question: Question }> =>
+const orderedQuestions = (book: Book, chapterIds?: string[]): Array<{
+  chapter: Chapter
+  question: Question
+}> =>
   chaptersWithQuestions(book, chapterIds).flatMap((chapter) =>
     chapter.questions.map((question) => ({ chapter, question })),
-  );
+  )
 
 const chapterSections = (book: Book, chapterIds?: string[]) => {
-  let index = 0;
+  let index = 0
   return chaptersWithQuestions(book, chapterIds)
     .map((c) => {
       const qs = c.questions
         .map((q) => {
-          index += 1;
-          return `Q${index}: ${q.text}\nR: ${q.answer}`;
+          index += 1
+          return `Q${index}: ${q.text}\nR: ${q.answer}`
         })
-        .join("\n\n");
+        .join("\n\n")
       return `--- CAPÍTULO ${c.number}: ${c.title} ---\n${
         c.description ? `Contexto: ${c.description}\n\n` : ""
-      }${qs}`;
+      }${qs}`
     })
-    .join("\n\n");
-};
+    .join("\n\n")
+}
 
 const conceptSections = (book: Book, chapterIds?: string[]) =>
   orderedQuestions(book, chapterIds)
@@ -46,17 +46,17 @@ const conceptSections = (book: Book, chapterIds?: string[]) =>
             : ""
         }\nPergunta anotada: ${question.text}\nAnotação completa: ${question.answer}`,
     )
-    .join("\n\n");
+    .join("\n\n")
 
 const bookHeader = (book: Book) => `LIVRO: ${book.title}
-AUTOR: ${book.author}${book.year ? `\nANO: ${book.year}` : ""}`;
+AUTOR: ${book.author}${book.year ? `\nANO: ${book.year}` : ""}`
 
 const fidelityRules = (unit: "pergunta" | "conceito") =>
   `FIDELIDADE ÀS ANOTAÇÕES (OBRIGATÓRIO):
 - Baseie-se exclusivamente nos capítulos, perguntas e respostas anotados abaixo — eles são o registro exato do que eu estudei
 - Não introduza conceitos, exemplos ou trechos do livro que não estejam nessas anotações
 - Trate o texto anotado como resposta de referência completa: avalie a minha resposta contra ela na íntegra, sem resumir nem descartar detalhes
-- Mantenha a ordem e a numeração de cada ${unit} exatamente como aparecem abaixo`;
+- Mantenha a ordem e a numeração de cada ${unit} exatamente como aparecem abaixo`
 
 const evaluationBlock = (unit: "questão" | "conceito") =>
   `Além disso, logo após o resumo escrito, exporte obrigatoriamente um bloco JSON com a avaliação de cada ${unit} (em ordem sequencial 1, 2, etc., seguindo a numeração das anotações), usando exatamente este formato:
@@ -68,13 +68,13 @@ const evaluationBlock = (unit: "questão" | "conceito") =>
   ]
 }
 \`\`\`
-(Use apenas: "correct", "partial", "wrong")`;
+(Use apenas: "correct", "partial", "wrong")`
 
 export const generateDirectPrompt = (
   book: Book,
   chapterIds?: string[],
 ): string => {
-  const sections = chapterSections(book, chapterIds);
+  const sections = chapterSections(book, chapterIds)
 
   return `Você é um tutor especializado em aprendizagem por recuperação ativa.
 
@@ -106,14 +106,14 @@ ANOTAÇÕES:
 
 ${sections}
 
-Quando estiver pronto, diga "Vamos começar a revisão!" e inicie com o primeiro capítulo.`;
-};
+Quando estiver pronto, diga "Vamos começar a revisão!" e inicie com o primeiro capítulo.`
+}
 
 export const generateGuidedPrompt = (
   book: Book,
   chapterIds?: string[],
 ): string => {
-  const sections = chapterSections(book, chapterIds);
+  const sections = chapterSections(book, chapterIds)
 
   return `Você é um tutor que aplica a técnica de Feynman: o aluno deve explicar cada ideia com as próprias palavras, como se ensinasse a alguém que nunca leu o livro.
 
@@ -144,14 +144,14 @@ ANOTAÇÕES:
 
 ${sections}
 
-Quando estiver pronto, diga "Vamos começar a revisão!" e peça a primeira explicação.`;
-};
+Quando estiver pronto, diga "Vamos começar a revisão!" e peça a primeira explicação.`
+}
 
 export const generateRecognitionPrompt = (
   book: Book,
   chapterIds?: string[],
 ): string => {
-  const concepts = conceptSections(book, chapterIds);
+  const concepts = conceptSections(book, chapterIds)
 
   return `Você é um tutor que testa reconhecimento e aplicação de conhecimento por meio de situações práticas.
 
@@ -185,5 +185,5 @@ ANOTAÇÕES (CONCEITOS A TESTAR):
 
 ${concepts}
 
-Quando estiver pronto, apresente a primeira situação sem revelar qual conceito está sendo testado.`;
-};
+Quando estiver pronto, apresente a primeira situação sem revelar qual conceito está sendo testado.`
+}

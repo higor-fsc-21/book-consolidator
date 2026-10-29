@@ -1,11 +1,11 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next"
 import {
   Libre_Caslon_Text,
   Hanken_Grotesk,
   JetBrains_Mono,
-} from "next/font/google";
-import { PWARegistration } from "@/components/PWARegistration";
-import "./globals.css";
+} from "next/font/google"
+import { PWARegistration } from "@/components/PWARegistration"
+import "./globals.css"
 
 const libreCaslonText = Libre_Caslon_Text({
   subsets: ["latin"],
@@ -13,21 +13,21 @@ const libreCaslonText = Libre_Caslon_Text({
   style: ["normal", "italic"],
   variable: "--font-display",
   display: "swap",
-});
+})
 
 const hankenGrotesk = Hanken_Grotesk({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
-});
+})
 
 const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-mono",
   display: "swap",
-});
+})
 
 export const metadata: Metadata = {
   title: "Book Consolidator",
@@ -47,18 +47,18 @@ export const metadata: Metadata = {
   verification: {
     google: "kHxZsMUtcFQGzo1aLfCt-8uelBztF4CH7R8seuKxvFM",
   },
-};
+}
 
 export const viewport: Viewport = {
   themeColor: "#172f3b",
   width: "device-width",
   initialScale: 1,
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html
@@ -70,5 +70,5 @@ export default function RootLayout({
         {children}
       </body>
     </html>
-  );
+  )
 }

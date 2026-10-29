@@ -1,8 +1,8 @@
-import Image from "next/image";
+import Image from "next/image"
 
 interface BrandMarkProps {
-  size?: number;
-  className?: string;
+  size?: number
+  className?: string
 }
 
 export function BrandMark({ size = 40, className }: BrandMarkProps) {
@@ -15,5 +15,5 @@ export function BrandMark({ size = 40, className }: BrandMarkProps) {
       height={size}
       className={className}
     />
-  );
+  )
 }

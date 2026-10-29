@@ -1,15 +1,15 @@
-const CACHE_NAME = "memora-shell-v1";
-const OFFLINE_URL = "/offline.html";
+const CACHE_NAME = "memora-shell-v1"
+const OFFLINE_URL = "/offline.html"
 
 self.addEventListener("push", (event) => {
-  let payload = {};
+  let payload = {}
   try {
-    payload = event.data ? event.data.json() : {};
+    payload = event.data ? event.data.json() : {}
   } catch {
-    payload = {};
+    payload = {}
   }
 
-  const title = payload.title || "Hora de revisar";
+  const title = payload.title || "Hora de revisar"
   const options = {
     body: payload.body || "Uma revisão está esperando por você.",
     icon: payload.icon || "/icon.svg",
@@ -17,17 +17,17 @@ self.addEventListener("push", (event) => {
     data: {
       url: payload.url || "/painel",
     },
-  };
+  }
 
-  event.waitUntil(self.registration.showNotification(title, options));
-});
+  event.waitUntil(self.registration.showNotification(title, options))
+})
 
 self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
+  event.notification.close()
   const targetUrl = new URL(
     event.notification.data?.url || "/painel",
     self.location.origin,
-  ).href;
+  ).href
 
   event.waitUntil(
     self.clients
@@ -36,16 +36,16 @@ self.addEventListener("notificationclick", (event) => {
         const existingClient = clients.find(
           (client) =>
             "focus" in client && client.url.startsWith(self.location.origin),
-        );
+        )
         if (existingClient) {
           return existingClient
             .navigate(targetUrl)
-            .then((client) => client?.focus());
+            .then((client) => client?.focus())
         }
-        return self.clients.openWindow(targetUrl);
+        return self.clients.openWindow(targetUrl)
       }),
-  );
-});
+  )
+})
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -53,8 +53,8 @@ self.addEventListener("install", (event) => {
       .open(CACHE_NAME)
       .then((cache) => cache.add(OFFLINE_URL))
       .then(() => self.skipWaiting()),
-  );
-});
+  )
+})
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
@@ -68,50 +68,48 @@ self.addEventListener("activate", (event) => {
         ),
       )
       .then(() => self.clients.claim()),
-  );
-});
+  )
+})
 
 self.addEventListener("fetch", (event) => {
-  const request = event.request;
-  const url = new URL(request.url);
+  const request = event.request
+  const url = new URL(request.url)
 
   if (request.method !== "GET" || url.origin !== self.location.origin) {
-    return;
+    return
   }
 
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
-    return;
+    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)))
+    return
   }
 
   const isStaticAsset =
     url.pathname.startsWith("/_next/static/") ||
     url.pathname === "/icon.svg" ||
     url.pathname === "/favicon.ico" ||
-    url.pathname === "/manifest.webmanifest";
+    url.pathname === "/manifest.webmanifest"
 
   if (!isStaticAsset) {
-    return;
+    return
   }
 
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
+  event.respondWith(caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
-        return cachedResponse;
+        return cachedResponse
       }
 
       return fetch(request).then((response) => {
         if (!response.ok) {
-          return response;
+          return response
         }
 
-        const responseToCache = response.clone();
+        const responseToCache = response.clone()
         void caches
           .open(CACHE_NAME)
-          .then((cache) => cache.put(request, responseToCache));
+          .then((cache) => cache.put(request, responseToCache))
 
-        return response;
-      });
-    }),
-  );
-});
+        return response
+      })
+    }))
+})

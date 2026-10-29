@@ -18,6 +18,7 @@ import {
   sessionHistory,
   timeline,
   totalQuestions,
+  userJourneyStats,
 } from "./derived"
 import type { Book, Question, RevisionSession } from "./types"
 
@@ -280,5 +281,85 @@ describe("derived domain helpers", () => {
     })
 
     expect(lastPerformance(q1, book)).toBe("correct")
+  })
+
+  it("calculates userJourneyStats across books and sessions", () => {
+    const now = new Date("2026-03-15T12:00:00.000Z")
+    const book1 = makeBook({
+      id: "b1",
+      status: "completed",
+      consolidationState: "consolidated",
+      sessions: [
+        {
+          id: "s1",
+          userId: "u1",
+          bookId: "b1",
+          chapterId: null,
+          mode: "direct",
+          score: 90,
+          startedAt: new Date("2026-03-10T10:00:00.000Z"),
+          completedAt: new Date("2026-03-10T10:30:00.000Z"),
+          createdAt: new Date("2026-03-10T10:00:00.000Z"),
+          attempts: [],
+        },
+        {
+          id: "s2",
+          userId: "u1",
+          bookId: "b1",
+          chapterId: null,
+          mode: "guided",
+          score: 80,
+          startedAt: new Date("2026-03-01T10:00:00.000Z"),
+          completedAt: new Date("2026-03-01T10:30:00.000Z"),
+          createdAt: new Date("2026-03-01T10:00:00.000Z"),
+          attempts: [],
+        },
+      ],
+    })
+
+    const book2 = makeBook({
+      id: "b2",
+      status: "completed",
+      consolidationState: "consolidating",
+      sessions: [
+        {
+          id: "s3",
+          userId: "u1",
+          bookId: "b2",
+          chapterId: null,
+          mode: "recognition",
+          score: 70,
+          startedAt: new Date("2026-03-12T10:00:00.000Z"),
+          completedAt: new Date("2026-03-12T10:30:00.000Z"),
+          createdAt: new Date("2026-03-12T10:00:00.000Z"),
+          attempts: [],
+        },
+      ],
+    })
+
+    const stats = userJourneyStats([book1, book2], now)
+
+    expect(stats.totalCompletedSessions).toBe(3)
+    // s1 (March 10) and s3 (March 12) are within 7 days of March 15
+    expect(stats.sessionsThisWeek).toBe(2)
+    // Average of 90, 80, 70 = 80
+    expect(stats.globalAvgScore).toBe(80)
+    expect(stats.completedBooksCount).toBe(2)
+    expect(stats.modeStats.direct.count).toBe(1)
+    expect(stats.modeStats.direct.avgScore).toBe(90)
+    expect(stats.modeStats.guided.count).toBe(1)
+    expect(stats.modeStats.guided.avgScore).toBe(80)
+    expect(stats.modeStats.recognition.count).toBe(1)
+    expect(stats.modeStats.recognition.avgScore).toBe(70)
+  })
+
+  it("handles empty books in userJourneyStats", () => {
+    const stats = userJourneyStats([])
+    expect(stats.totalCompletedSessions).toBe(0)
+    expect(stats.sessionsThisWeek).toBe(0)
+    expect(stats.globalAvgScore).toBeNull()
+    expect(stats.completedBooksCount).toBe(0)
+    expect(stats.modeStats.direct.count).toBe(0)
+    expect(stats.modeStats.direct.avgScore).toBeNull()
   })
 })

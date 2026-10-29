@@ -1,10 +1,10 @@
-import Link from "next/link";
-import type { Metadata } from "next";
-import { BrandMark } from "@/components/BrandMark";
-import { FAST_PRINCIPLES } from "@/domain/fast";
+import Link from "next/link"
+import type { Metadata } from "next"
+import { BrandMark } from "@/components/BrandMark"
+import { FAST_PRINCIPLES } from "@/domain/fast"
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://book-consolidator.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://book-consolidator.vercel.app"
 
 export const metadata: Metadata = {
   title: "Book Consolidator | Transforme leitura em conhecimento",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     url: siteUrl,
     type: "website",
   },
-};
+}
 
 function Mark() {
   return (
@@ -27,7 +27,7 @@ function Mark() {
       size={36}
       className="rounded-[10px] shadow-[0_4px_14px_rgba(242,212,146,0.24)]"
     />
-  );
+  )
 }
 
 function ArrowUpRight() {
@@ -46,7 +46,7 @@ function ArrowUpRight() {
       <path d="M7 17 17 7" />
       <path d="M7 7h10v10" />
     </svg>
-  );
+  )
 }
 
 function Check() {
@@ -64,7 +64,7 @@ function Check() {
     >
       <path d="m5 12 4 4L19 6" />
     </svg>
-  );
+  )
 }
 
 const websiteJsonLd = {
@@ -72,7 +72,7 @@ const websiteJsonLd = {
   "@type": "WebSite",
   name: "Book Consolidator",
   url: siteUrl,
-};
+}
 
 export default function HomePage() {
   return (
@@ -314,5 +314,5 @@ export default function HomePage() {
         </footer>
       </main>
     </>
-  );
+  )
 }

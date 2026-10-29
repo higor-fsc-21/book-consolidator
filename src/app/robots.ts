@@ -1,6 +1,6 @@
-import type { MetadataRoute } from "next";
+import type { MetadataRoute } from "next"
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:8443";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:8443"
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -10,5 +10,5 @@ export default function robots(): MetadataRoute.Robots {
       disallow: ["/biblioteca", "/livros/", "/sessoes/", "/api/"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
-  };
+  }
 }

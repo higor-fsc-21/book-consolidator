@@ -1,5 +1,8 @@
 "use server"
 
+// `redirect()` throws a NEXT_REDIRECT control-flow error, so it must stay
+// outside the try block or the catch above would swallow the navigation.
+
 import { redirect } from "next/navigation"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { getCurrentUser } from "@/lib/auth"
@@ -75,9 +78,6 @@ export async function startSessionAction(
     })
     return { success: false, error: "Erro ao iniciar sessão" }
   }
-
-  // `redirect()` throws a NEXT_REDIRECT control-flow error, so it must stay
-  // outside the try block or the catch above would swallow the navigation.
   redirect(`/sessoes/${sessionId}`)
 }
 

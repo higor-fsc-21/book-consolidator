@@ -1,17 +1,20 @@
-import { NotificationSettings } from "@/components/NotificationSettings";
+import { getCurrentUser } from "@/lib/auth"
+import { getBooksForUser } from "@/domain/queries/books"
+import { ProfileSettingsView } from "@/views/ProfileSettings"
+import type { UserProfile } from "@/domain/types"
 
-export default function SettingsPage() {
-  return (
-    <div className="mx-auto max-w-5xl space-y-8 p-4 sm:p-6 lg:p-8">
-      <div>
-        <div className="text-xs text-[#74777d] font-[500] uppercase tracking-widest mb-1">
-          Preferências
-        </div>
-        <h1 className="font-display text-3xl text-[#1b1c1c] sm:text-4xl">
-          Configurações
-        </h1>
-      </div>
-      <NotificationSettings />
-    </div>
-  );
+export default async function SettingsPage() {
+  const user = await getCurrentUser()
+  const books = await getBooksForUser(user.id)
+
+  const profile: UserProfile = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    annualBooksGoal: user.annualBooksGoal,
+    weeklyRevisionsGoal: user.weeklyRevisionsGoal,
+    createdAt: user.createdAt,
+  }
+
+  return <ProfileSettingsView profile={profile} books={books} />
 }

@@ -1,37 +1,37 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { rebuildRevisionQueueAction } from "@/app/actions/revisions";
-import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition";
+import { useState } from "react"
+import { rebuildRevisionQueueAction } from "@/app/actions/revisions"
+import { useSingleFlightTransition } from "@/hooks/useSingleFlightTransition"
 
 export function RevisionQueueButton({ bookCount }: { bookCount: number }) {
-  const [isPending, startTransition] = useSingleFlightTransition();
-  const [message, setMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useSingleFlightTransition()
+  const [message, setMessage] = useState<string | null>(null)
 
   const handleRebuild = () => {
     if (bookCount === 0) {
-      setMessage("Nenhum livro concluído está aguardando revisão.");
-      return;
+      setMessage("Nenhum livro concluído está aguardando revisão.")
+      return
     }
 
     if (!window.confirm("Reorganizar todas as revisões em uma fila diária?")) {
-      return;
+      return
     }
 
-    setMessage(null);
+    setMessage(null)
     startTransition(async () => {
-      const result = await rebuildRevisionQueueAction();
+      const result = await rebuildRevisionQueueAction()
       if (!result.success) {
-        setMessage(result.error);
-        return;
+        setMessage(result.error)
+        return
       }
       setMessage(
         result.data?.length === 1
           ? "Sua próxima revisão está organizada."
           : `${result.data?.length ?? 0} revisões foram organizadas em sequência.`,
-      );
-    });
-  };
+      )
+    })
+  }
 
   return (
     <div className="flex flex-col items-end gap-2">
@@ -49,5 +49,5 @@ export function RevisionQueueButton({ bookCount }: { bookCount: number }) {
         </span>
       )}
     </div>
-  );
+  )
 }

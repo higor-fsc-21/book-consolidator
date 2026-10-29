@@ -11,6 +11,8 @@ import {
   StartSessionInputSchema,
   UpdateBookInputSchema,
   UpdateChapterInputSchema,
+  UpdateUserGoalsSchema,
+  UpdateUserProfileSchema,
 } from "./validators"
 
 describe("validation schemas (D20)", () => {
@@ -165,6 +167,88 @@ describe("validation schemas (D20)", () => {
       expect(GoogleBooksSearchQuerySchema.safeParse({ q: "   " }).success).toBe(
         false,
       )
+    })
+  })
+
+  describe("UpdateUserProfileSchema", () => {
+    it("validates valid profile name", () => {
+      const result = UpdateUserProfileSchema.safeParse({ name: "Jane Doe" })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.name).toBe("Jane Doe")
+      }
+    })
+
+    it("fails when name is empty or whitespace only", () => {
+      expect(UpdateUserProfileSchema.safeParse({ name: "" }).success).toBe(
+        false,
+      )
+      expect(UpdateUserProfileSchema.safeParse({ name: "   " }).success).toBe(
+        false,
+      )
+    })
+
+    it("fails when name exceeds 120 chars", () => {
+      const tooLong = "a".repeat(121)
+      expect(UpdateUserProfileSchema.safeParse({ name: tooLong }).success).toBe(
+        false,
+      )
+    })
+  })
+
+  describe("UpdateUserGoalsSchema", () => {
+    it("validates valid goals", () => {
+      const result = UpdateUserGoalsSchema.safeParse({
+        annualBooksGoal: 15,
+        weeklyRevisionsGoal: 5,
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.annualBooksGoal).toBe(15)
+        expect(result.data.weeklyRevisionsGoal).toBe(5)
+      }
+    })
+
+    it("coerces string numbers correctly", () => {
+      const result = UpdateUserGoalsSchema.safeParse({
+        annualBooksGoal: "20",
+        weeklyRevisionsGoal: "4",
+      })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.annualBooksGoal).toBe(20)
+        expect(result.data.weeklyRevisionsGoal).toBe(4)
+      }
+    })
+
+    it("fails on out of range values", () => {
+      expect(
+        UpdateUserGoalsSchema.safeParse({
+          annualBooksGoal: 0,
+          weeklyRevisionsGoal: 3,
+        }).success,
+      ).toBe(false)
+
+      expect(
+        UpdateUserGoalsSchema.safeParse({
+          annualBooksGoal: 201,
+          weeklyRevisionsGoal: 3,
+        }).success,
+      ).toBe(false)
+
+      expect(
+        UpdateUserGoalsSchema.safeParse({
+          annualBooksGoal: 10,
+          weeklyRevisionsGoal: 0,
+        }).success,
+      ).toBe(false)
+
+      expect(
+        UpdateUserGoalsSchema.safeParse({
+          annualBooksGoal: 10,
+          weeklyRevisionsGoal: 51,
+        }).success,
+      ).toBe(false)
     })
   })
 

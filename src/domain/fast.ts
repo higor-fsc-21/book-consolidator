@@ -39,4 +39,4 @@ export const FAST_PRINCIPLES = [
     evidence:
       "Acompanhar hábitos e progresso transforma a prática constante em uma rotina sustentável.",
   },
-] as const;
+] as const

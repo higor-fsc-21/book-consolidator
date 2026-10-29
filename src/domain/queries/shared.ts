@@ -1,4 +1,4 @@
-import "server-only";
+import "server-only"
 import type {
   Prisma,
   Book as PrismaBook,
@@ -6,7 +6,7 @@ import type {
   Question as PrismaQuestion,
   RevisionSession as PrismaRevisionSession,
   SessionAttempt as PrismaSessionAttempt,
-} from "@prisma/client";
+} from "@prisma/client"
 import type {
   Book,
   BookSummary,
@@ -15,7 +15,7 @@ import type {
   Question,
   RevisionSession,
   SessionAttempt,
-} from "../types";
+} from "../types"
 
 export const bookInclude = {
   chapters: {
@@ -26,7 +26,7 @@ export const bookInclude = {
     orderBy: { startedAt: "asc" },
     include: { attempts: { orderBy: { attemptedAt: "asc" } } },
   },
-} satisfies Prisma.BookInclude;
+} satisfies Prisma.BookInclude
 
 export const bookSummaryInclude = {
   chapters: {
@@ -38,34 +38,33 @@ export const bookSummaryInclude = {
   sessions: {
     select: { completedAt: true, score: true },
   },
-} satisfies Prisma.BookInclude;
+} satisfies Prisma.BookInclude
 
-type RawQuestion = PrismaQuestion;
-type RawChapter = PrismaChapter & { questions: RawQuestion[] };
-export type RawAttempt = PrismaSessionAttempt;
-export type RawSession = PrismaRevisionSession & { attempts: RawAttempt[] };
+type RawQuestion = PrismaQuestion
+type RawChapter = PrismaChapter & { questions: RawQuestion[] }
+export type RawAttempt = PrismaSessionAttempt
+export type RawSession = PrismaRevisionSession & { attempts: RawAttempt[] }
 type RawBook = PrismaBook & {
-  chapters: RawChapter[];
-  sessions: RawSession[];
-};
+  chapters: RawChapter[]
+  sessions: RawSession[]
+}
 type RawBookSummary = PrismaBook & {
-  chapters: { isRead: boolean; _count: { questions: number } }[];
-  sessions: Pick<PrismaRevisionSession, "completedAt" | "score">[];
-};
+  chapters: { isRead: boolean; _count: { questions: number } }[]
+  sessions: Pick<PrismaRevisionSession, "completedAt" | "score">[]
+}
 
 // unstable_cache may round-trip Date fields through JSON, so every read is
 // normalized back into real Date instances regardless of cache hit/miss.
-const toDate = (v: Date | string): Date =>
-  v instanceof Date ? v : new Date(v);
+const toDate = (v: Date | string): Date => (v instanceof Date ? v : new Date(v))
 const toDateOrNull = (v: Date | string | null): Date | null =>
-  v == null ? null : toDate(v);
+  v == null ? null : toDate(v)
 
 function reviveQuestion(raw: RawQuestion): Question {
   return {
     ...raw,
     createdAt: toDate(raw.createdAt),
     updatedAt: toDate(raw.updatedAt),
-  };
+  }
 }
 
 function reviveChapter(raw: RawChapter): Chapter {
@@ -74,11 +73,11 @@ function reviveChapter(raw: RawChapter): Chapter {
     createdAt: toDate(raw.createdAt),
     updatedAt: toDate(raw.updatedAt),
     questions: raw.questions.map(reviveQuestion),
-  };
+  }
 }
 
 export function reviveAttempt(raw: RawAttempt): SessionAttempt {
-  return { ...raw, attemptedAt: toDate(raw.attemptedAt) };
+  return { ...raw, attemptedAt: toDate(raw.attemptedAt) }
 }
 
 export function reviveSession(raw: RawSession): RevisionSession {
@@ -88,7 +87,7 @@ export function reviveSession(raw: RawSession): RevisionSession {
     completedAt: toDateOrNull(raw.completedAt),
     createdAt: toDate(raw.createdAt),
     attempts: raw.attempts.map(reviveAttempt),
-  };
+  }
 }
 
 export function reviveBook(raw: RawBook): Book {
@@ -103,7 +102,7 @@ export function reviveBook(raw: RawBook): Book {
     updatedAt: toDate(raw.updatedAt),
     chapters: raw.chapters.map(reviveChapter),
     sessions: raw.sessions.map(reviveSession),
-  };
+  }
 }
 
 export function reviveBookSummary(raw: RawBookSummary): BookSummary {
@@ -124,5 +123,5 @@ export function reviveBookSummary(raw: RawBookSummary): BookSummary {
       completedAt: toDateOrNull(session.completedAt),
       score: session.score,
     })),
-  };
+  }
 }

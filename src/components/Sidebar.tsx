@@ -1,8 +1,8 @@
-"use client"; /* Brand */ /* Navigation */ /* User */
-import Link, { useLinkStatus } from "next/link";
-import { usePathname } from "next/navigation";
-import { logout } from "@/app/(auth)/login/actions";
-import { BrandMark } from "@/components/BrandMark";
+"use client" /* Brand */ /* Navigation */ /* User */
+import Link, { useLinkStatus } from "next/link"
+import { usePathname } from "next/navigation"
+import { logout } from "@/app/(auth)/login/actions"
+import { BrandMark } from "@/components/BrandMark"
 
 const navItems = [
   {
@@ -82,35 +82,34 @@ const navItems = [
       </svg>
     ),
   },
-];
+]
 
 interface SidebarProps {
   user?: {
-    name: string;
-    email: string;
-  };
+    name: string
+    email: string
+  }
 }
 
 function LinkPendingIndicator() {
-  const { pending } = useLinkStatus();
+  const { pending } = useLinkStatus()
 
-  if (!pending) return null;
+  if (!pending) return null
 
   return (
     <span
       aria-hidden="true"
       className="fixed inset-x-0 top-0 z-[100] h-0.5 animate-pulse bg-[#f2d492]"
     />
-  );
+  )
 }
 
 export function Sidebar({ user }: SidebarProps) {
-  const pathname = usePathname();
-  const inLibrary =
-    pathname === "/biblioteca" || pathname.startsWith("/livros");
+  const pathname = usePathname()
+  const inLibrary = pathname === "/biblioteca" || pathname.startsWith("/livros")
 
   const displayName =
-    user?.name || (user?.email ? user.email.split("@")[0] : "Usuário");
+    user?.name || (user?.email ? user.email.split("@")[0] : "Usuário")
 
   return (
     <aside className="fixed inset-x-0 bottom-0 z-40 flex min-h-[68px] shrink-0 border-t border-[#e4e2e2] bg-[#f5f3f3] pb-[env(safe-area-inset-bottom)] md:static md:h-full md:w-[220px] md:flex-col md:border-r md:border-t-0 md:pb-0">
@@ -130,7 +129,7 @@ export function Sidebar({ user }: SidebarProps) {
               ? pathname === "/painel"
               : href === "/biblioteca"
                 ? inLibrary
-                : pathname.startsWith(href);
+                : pathname.startsWith(href)
           return (
             <Link
               key={href}
@@ -147,36 +146,44 @@ export function Sidebar({ user }: SidebarProps) {
               {label}
               <LinkPendingIndicator />
             </Link>
-          );
+          )
         })}
       </nav>
 
       <div className="hidden border-t border-[#e4e2e2] p-4 md:block">
         <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[13px] font-[600] shrink-0"
-            style={{ background: "linear-gradient(135deg, #1a2e44, #2d4460)" }}
+          <Link
+            href="/configuracoes?tab=perfil"
+            className="flex items-center gap-3 flex-1 min-w-0 p-1 -m-1 rounded-lg hover:bg-[#1b1c1c]/[0.04] transition-colors group"
+            title="Ver e gerenciar perfil"
           >
-            {displayName.charAt(0)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-[600] text-[#1b1c1c] truncate">
-              {displayName}
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[13px] font-[600] shrink-0"
+              style={{
+                background: "linear-gradient(135deg, #1a2e44, #2d4460)",
+              }}
+            >
+              {displayName.charAt(0)}
             </div>
-            {user?.email && (
-              <div
-                className="text-[11px] text-[#74777d] mt-0.5 truncate"
-                title={user.email}
-              >
-                {user.email}
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-[600] text-[#1b1c1c] truncate group-hover:text-[#1a2e44] transition-colors">
+                {displayName}
               </div>
-            )}
-          </div>
+              {user?.email && (
+                <div
+                  className="text-[11px] text-[#74777d] mt-0.5 truncate"
+                  title={user.email}
+                >
+                  {user.email}
+                </div>
+              )}
+            </div>
+          </Link>
           <form action={logout}>
             <button
               type="submit"
               title="Sair"
-              className="text-[#74777d] hover:text-[#ba1a1a] transition-colors"
+              className="text-[#74777d] hover:text-[#ba1a1a] transition-colors p-1"
             >
               <svg
                 width="14"
@@ -197,5 +204,5 @@ export function Sidebar({ user }: SidebarProps) {
         </div>
       </div>
     </aside>
-  );
+  )
 }
